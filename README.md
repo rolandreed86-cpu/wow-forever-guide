@@ -34,17 +34,17 @@ Blizzard's official API doesn't yet expose trainer spells or dungeon loot for Fo
 
 ## Live character tracking
 
-The Progress page and the header follow your real character, read from Blizzard's WoW Forever Profile API
-(`profile-forever-{region}` namespace): level, class, faction, professions, talent points per tree, equipped gear and item level.
+The Progress page and the header follow your real character. No API keys are needed:
 
-1. Create a free API client at <https://develop.battle.net/access/clients>.
-2. Add `BLIZZARD_CLIENT_ID` and `BLIZZARD_CLIENT_SECRET` as environment secrets (never commit them).
-3. Put your character in `sync.config.json` as `"character": "name-surname"` with `"region": "eu"` or `"us"`.
-4. Run `npm run sync:character`. It rewrites `src/data/character.json` only when something changed and prints what changed.
+- **[Raider.IO](https://forever.raider.io/api)** (public API, crawled from the Armory): level, class, race, faction, guild, equipped gear, item level and talent points per tree.
+- **[ForeverDB](https://foreverdb.net/armory)** (public character pages): profession skills, uploaded by the ForeverDB in-game addon. Optional: without it, professions keep their last value.
+
+1. Put your character in `sync.config.json`: `"character": "Name Surname"`, `"region": "eu"` or `"us"`, and `"realm"` as the ruleset (`normal`, `pvp`, `rp` or `pvp-rp`).
+2. Run `npm run sync:character`. It rewrites `src/data/character.json` only when something changed and prints what changed.
 
 A daily scheduled job runs the sync. When it reports changes, it commits them on a `sync/character-YYYY-MM-DD` branch,
 opens a pull request with the change list, then rebuilds and republishes the hosted page.
-Blizzard lists a character from level 10, and only after it logs out. Edits you make by hand in the app stay until the next sync.
+A character appears from level 10, after a logout and Raider.IO's next crawl. Edits you make by hand in the app stay until the next sync.
 
 ## Develop
 

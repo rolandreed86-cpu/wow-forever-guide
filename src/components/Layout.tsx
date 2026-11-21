@@ -46,7 +46,7 @@ export function Layout({ view, children }: { view: string; children: ReactNode }
                 {Object.entries(character.professions).map(([p, s]) => <span key={p} className="pill">{p} {s}</span>)}
                 <span className="pill">{character.faction === "horde" ? "Horde" : "Alliance"}</span>
                 {SYNCED.character && character.syncedAt === SYNCED.character.syncedAt && (
-                  <span className="pill good" title={`Synced from Blizzard ${new Date(SYNCED.character.syncedAt).toLocaleString()}`}>Live</span>
+                  <span className="pill good" title={`Synced ${new Date(SYNCED.character.syncedAt).toLocaleString()}`}>Live</span>
                 )}
               </span>
             </span>
@@ -72,7 +72,7 @@ export function Layout({ view, children }: { view: string; children: ReactNode }
             Dungeon, quest and class-quest data from <a href="https://forevercompanion.io" target="_blank" rel="noreferrer">Forever Companion</a>.
             Item stats and sources from <a href="https://github.com/gBlaku/wow-forever-kb" target="_blank" rel="noreferrer">wow-forever-kb</a>.
             Talent trees from <a href="https://wowforevertalent.com/sources/" target="_blank" rel="noreferrer">Talents Forever via WoW Forever Talent</a> (CC BY 4.0).
-            Character tracking from the Blizzard Battle.net API.
+            Character tracking from <a href="https://forever.raider.io" target="_blank" rel="noreferrer">Raider.IO</a> and <a href="https://foreverdb.net" target="_blank" rel="noreferrer">ForeverDB</a>.
             Level milestones hand-curated from <a href="https://warcraft.wiki.gg/wiki/World_of_Warcraft:_Forever" target="_blank" rel="noreferrer">warcraft.wiki.gg</a> and community guides.
           </div>
           <div>Fan-made and not affiliated with Blizzard Entertainment. World of Warcraft is a trademark of Blizzard Entertainment.</div>

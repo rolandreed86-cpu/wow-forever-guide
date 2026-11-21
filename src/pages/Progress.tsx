@@ -1,7 +1,7 @@
 import { CLASSES } from "@/data/classes";
 import { maxSkillForLevel } from "@/data/professions";
 import { SYNCED, useCharacter } from "@/lib/character";
-import type { HistoryPoint, SyncedCharacter } from "@/lib/blizzard";
+import type { HistoryPoint, SyncedCharacter } from "@/lib/characterSync";
 import { PageTitle } from "@/components/States";
 
 const fmtDate = (iso: string) =>
@@ -14,7 +14,7 @@ export default function Progress() {
   return (
     <section className="flex flex-col gap-5">
       <PageTitle eyebrow="Progress" title={c ? `${c.name}'s journey` : "Live character tracking"}>
-        Your level, professions, talents and gear, read from Blizzard's WoW Forever character API. A daily sync updates this page,
+        Your level, professions, talents and gear, read from Raider.IO and ForeverDB. A daily sync updates this page,
         and the guidance, gear and profession pages follow your real character.
       </PageTitle>
       {c ? <Tracked c={c} history={SYNCED.history} /> : <NotSetUp />}
@@ -26,10 +26,10 @@ function NotSetUp() {
   return (
     <div className="frame p-5 flex flex-col gap-3 max-w-[70ch]">
       <h2 className="heading text-xl m-0">Waiting for the first sync</h2>
-      <p className="m-0">Tracking starts once the Battle.net API client is added to the project and your character is named. Until then the app uses the character you set by hand in the header.</p>
+      <p className="m-0">Tracking starts once your character is named in the project. Until then the app uses the character you set by hand in the header.</p>
       <ul className="m-0 pl-5 flex flex-col gap-1 text-[15px]">
-        <li>Blizzard lists a character from level 10.</li>
-        <li>It shows your character as it was at your last logout, so log out after a session to save your progress.</li>
+        <li>Level, gear and talents come from Raider.IO, which reads the Armory. A character appears from level 10, after a logout.</li>
+        <li>Professions come from ForeverDB, which needs its in-game addon to upload them.</li>
       </ul>
     </div>
   );
@@ -39,7 +39,8 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
   const { character, resync } = useCharacter();
   const cls = c.classId ? CLASSES[c.classId] : null;
   const edited = character.syncedAt === c.syncedAt &&
-    (character.level !== c.level || JSON.stringify(character.professions) !== JSON.stringify(c.professions));
+    (character.level !== c.level ||
+      (Object.keys(c.professions).length > 0 && JSON.stringify(character.professions) !== JSON.stringify(c.professions)));
   const cap = maxSkillForLevel(c.level);
   const talentTotal = Object.values(c.talents).reduce((a, b) => a + b, 0);
 
@@ -56,7 +57,7 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
         </div>
         <div className="text-[#47331a] text-[15px] text-right">
           <div>Synced {fmtWhen(c.syncedAt)}</div>
-          {c.lastLogout && <div>Last logout {fmtWhen(c.lastLogout)}</div>}
+          {c.lastSeen && <div>Armory read {fmtWhen(c.lastSeen)}</div>}
           {c.itemLevel !== null && <div>Average item level {c.itemLevel}</div>}
         </div>
       </div>
@@ -76,7 +77,9 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
 
         <div className="frame p-5 flex flex-col gap-3">
           <h2 className="heading text-xl m-0">Professions</h2>
-          {Object.keys(c.professions).length === 0 && <p className="m-0 text-muted italic">No professions learned yet.</p>}
+          {Object.keys(c.professions).length === 0 && (
+            <p className="m-0 text-muted italic">No professions yet. They come from ForeverDB: install its addon and upload once to add them.</p>
+          )}
           {Object.entries(c.professions).map(([p, v]) => {
             const max = c.professionMax[p] || 300;
             const prev = history.length > 1 ? history[history.length - 2].professions[p] : undefined;
@@ -130,7 +133,12 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
       </div>
 
       <p className="m-0 text-sm text-muted">
-        Character data from the Blizzard Battle.net API. {cls ? "" : "Unknown class, so class pages use your manual choice. "}
+        Character data from{" "}
+        {c.links.length ? c.links.map((l, i) => (
+          <span key={l.url}>{i > 0 && " and "}<a href={l.url} target="_blank" rel="noreferrer">{l.label}</a></span>
+        )) : "Raider.IO"}
+        {c.professionsFrom && <> (professions as of {fmtDate(c.professionsFrom)})</>}.{" "}
+        {cls ? "" : "Unknown class, so class pages use your manual choice. "}
         History since {history[0] ? fmtDate(history[0].date) : fmtDate(c.syncedAt)}.
       </p>
     </>

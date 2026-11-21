@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { ClassId, Faction } from "@/data/classes";
 import synced from "@/data/character.json";
-import type { CharacterFile, SyncedCharacter } from "@/lib/blizzard";
+import type { CharacterFile, SyncedCharacter } from "@/lib/characterSync";
 
 export interface Character {
   name: string;
@@ -10,11 +10,11 @@ export interface Character {
   faction: Faction;
   /** Profession name → current skill. */
   professions: Record<string, number>;
-  /** The Blizzard sync this character was last updated from, if any. */
+  /** The character sync this character was last updated from, if any. */
   syncedAt?: string;
 }
 
-/** The latest pull from Blizzard's profile API, bundled with the app (see scripts/sync-character.ts). */
+/** The latest character sync, bundled with the app (see scripts/sync-character.ts). */
 export const SYNCED: CharacterFile = synced as CharacterFile;
 
 export const DEFAULT_CHARACTER: Character = {
@@ -28,7 +28,7 @@ export const DEFAULT_CHARACTER: Character = {
 const KEY = "wa:character";
 
 /**
- * A newer Blizzard sync replaces level, class, faction and professions. Edits made after a sync are kept
+ * A newer sync replaces level, class, faction and professions. Edits made after a sync are kept
  * until the next one arrives, so you can still try out "what if I were level 45".
  */
 export function applySync(c: Character, s: SyncedCharacter | null): Character {
@@ -58,7 +58,7 @@ function load(): Character {
 interface Ctx {
   character: Character;
   update: (patch: Partial<Character>) => void;
-  /** Put back the values from the latest Blizzard sync after manual edits. */
+  /** Put back the values from the latest sync after manual edits. */
   resync: () => void;
 }
 

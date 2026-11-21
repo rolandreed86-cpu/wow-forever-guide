@@ -1,82 +1,77 @@
 /**
- * Pulls your character from Blizzard's WoW Forever Profile API into src/data/character.json.
+ * Pulls your character into src/data/character.json from public WoW Forever sites. No API keys needed.
  *
  *   npm run sync:character
  *
- * Needs BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET (a free client from https://develop.battle.net/access/clients).
- * The character and region come from sync.config.json, or WOW_CHARACTER / WOW_REGION if set.
+ *   Raider.IO  level, class, faction, guild, gear and talent points (crawled from the Armory)
+ *   ForeverDB  profession skills, when you upload with the ForeverDB addon (optional)
+ *
+ * The character comes from sync.config.json: region (eu or us), realm (the ruleset: normal, pvp, rp or pvp-rp)
+ * and character ("Name Surname"). WOW_REGION, WOW_REALM and WOW_CHARACTER override it.
  * Writes the file only when something changed, and prints what changed, or "No changes".
- * Blizzard lists a character from level 10, and only after it logs out.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import {
-  appendHistory, characterSlug, describeChanges, normalizeCharacter,
-  type CharacterFile, type RawCharacter, type SyncedCharacter,
-} from "../src/lib/blizzard.ts";
+  appendHistory, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
+  pickForeverDbLink, raiderIoUrl, type CharacterFile,
+} from "../src/lib/characterSync.ts";
 
 const OUT = "src/data/character.json";
-const config = JSON.parse(readFileSync("sync.config.json", "utf8")) as { region?: string; character?: string };
+const UA = { "User-Agent": "wayfarers-almanac-sync/1.0 (personal character tracker)" };
+const config = JSON.parse(readFileSync("sync.config.json", "utf8")) as { region?: string; realm?: string; character?: string };
 const region = (process.env.WOW_REGION || config.region || "eu").toLowerCase();
-const name = process.env.WOW_CHARACTER || config.character || "";
-const id = process.env.BLIZZARD_CLIENT_ID;
-const secret = process.env.BLIZZARD_CLIENT_SECRET;
+const realm = (process.env.WOW_REALM || config.realm || "normal").toLowerCase();
+const name = (process.env.WOW_CHARACTER || config.character || "").trim();
 
 function fail(msg: string): never {
   console.error(msg);
   process.exit(1);
 }
 
-if (!id || !secret) fail("Missing BLIZZARD_CLIENT_ID or BLIZZARD_CLIENT_SECRET. Add them as secrets in the cloud environment settings.");
-if (!name) fail('No character set. Put it in sync.config.json as "character": "name-surname", or set WOW_CHARACTER.');
-if (!["eu", "us", "kr", "tw"].includes(region)) fail(`Unknown region "${region}". Use eu or us.`);
+if (!name) fail('No character set. Put it in sync.config.json as "character": "Name Surname", or set WOW_CHARACTER.');
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function token(): Promise<string> {
-  const res = await fetch("https://oauth.battle.net/token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) fail(`Battle.net refused the API client (${res.status}). Check the client ID and secret.`);
-  return ((await res.json()) as { access_token: string }).access_token;
-}
-
-/** The Forever profile API sometimes 404s a character that exists, so 404s get a few retries too. */
-async function get(path: string, bearer: string, required: boolean): Promise<unknown> {
-  const locale = region === "us" ? "en_US" : "en_GB";
-  const url = `https://${region}.api.blizzard.com${path}?namespace=profile-forever-${region}&locale=${locale}`;
-  for (let attempt = 1; attempt <= 4; attempt++) {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${bearer}` } });
-    if (res.ok) return res.json();
-    const retry = res.status === 404 || res.status === 429 || res.status >= 500;
-    if (!retry || attempt === 4) {
-      if (!required) return undefined;
-      if (res.status === 404) {
-        fail(`Blizzard has no character "${name}" in ${region.toUpperCase()}. It must be level 10 or higher and logged out at least once since reaching 10. Check the name-surname spelling in sync.config.json.`);
-      }
-      fail(`Blizzard API error ${res.status} for ${path}`);
-    }
-    await sleep(2000 * attempt);
+async function getText(url: string, tries = 3): Promise<{ status: number; body: string }> {
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(url, { headers: UA });
+    const body = await res.text();
+    if (res.ok || attempt >= tries || (res.status < 500 && res.status !== 429)) return { status: res.status, body };
+    await sleep(3000 * attempt);
   }
-  return undefined;
 }
 
-const bearer = await token();
-const base = `/profile/wow/character/${encodeURIComponent(characterSlug(name))}`;
-const raw: RawCharacter = { summary: await get(base, bearer, true) };
-raw.professions = await get(`${base}/professions`, bearer, false);
-raw.equipment = await get(`${base}/equipment`, bearer, false);
-raw.specializations = await get(`${base}/specializations`, bearer, false);
+// Raider.IO: required.
+const rio = await getText(raiderIoUrl(region, realm, name));
+if (rio.status !== 200) {
+  let msg = rio.body;
+  try { msg = (JSON.parse(rio.body) as { message?: string }).message ?? msg; } catch { /* plain text */ }
+  fail(`Raider.IO couldn't find "${name}" on ${region.toUpperCase()} ${realm} (${rio.status}: ${msg}). ` +
+    "Check the name, region and realm in sync.config.json. A new character appears after Raider.IO next crawls the Armory, " +
+    "which needs level 10 and a logout. You can also look it up once at forever.raider.io to queue it.");
+}
+const raiderIo = JSON.parse(rio.body);
 
-const next = normalizeCharacter(raw, region);
+// ForeverDB: optional, for professions.
+let foreverDb: { html: string; url: string } | null = null;
+try {
+  const search = await getText(`https://foreverdb.net/armory?q=${encodeURIComponent(name)}`, 2);
+  const link = pickForeverDbLink(foreverDbLinks(search.body), region, name);
+  if (link) {
+    const url = `https://foreverdb.net${link}`;
+    const page = await getText(url, 2);
+    if (page.status === 200) foreverDb = { html: page.body, url };
+  }
+} catch (e) {
+  console.warn(`ForeverDB unavailable, keeping the last known professions (${(e as Error).message})`);
+}
+if (!foreverDb) console.warn("ForeverDB has no page for this character yet, so professions stay as they were. Upload once with the ForeverDB addon to add them.");
+else if (!Object.keys(parseForeverDbProfessions(foreverDb.html).professions).length) console.warn("ForeverDB lists the character but no professions.");
+
 const file = JSON.parse(readFileSync(OUT, "utf8")) as CharacterFile;
-const strip = (c: SyncedCharacter | null) => (c ? JSON.stringify({ ...c, syncedAt: "" }) : "");
+const next = buildCharacter({ raiderIo, foreverDb, region, previous: file.character });
 
-if (strip(file.character) === strip(next)) {
+if (fingerprint(file.character) === fingerprint(next)) {
   console.log(`No changes: ${next.name} is still level ${next.level}.`);
 } else {
   const changes = describeChanges(file.character, next);
