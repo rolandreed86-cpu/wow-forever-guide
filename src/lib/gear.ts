@@ -1,5 +1,6 @@
 import type { ClassInfo, StatKey } from "@/data/classes";
 import type { KbItem } from "./kb";
+import { FAST_ROUTES, reachable, type Route, type RouteIndex, type RouteKind } from "./acquire";
 
 export type SourceKind = "boss" | "quest" | "crafted" | "vendor" | "world" | "raid" | "other";
 
@@ -104,6 +105,8 @@ export interface Pick {
   item: KbItem;
   score: number;
   source: SourceKind;
+  /** Where to get it, when a route index was used. */
+  route?: Route;
 }
 
 export interface BisResult {
@@ -134,7 +137,11 @@ export function candidates(items: KbItem[], cls: ClassInfo, level: number, o: Ge
 
 /** Best items for each slot at a given level, with runner-ups. */
 export function bestInSlot(items: KbItem[], cls: ClassInfo, level: number, o: GearOptions = {}, depth = 3): BisResult {
-  const pool = candidates(items, cls, level, o);
+  return bisFromPool(candidates(items, cls, level, o), cls, level, depth);
+}
+
+/** Group a ranked pool of candidates into slots and the better weapon set. */
+export function bisFromPool(pool: Pick[], cls: ClassInfo, level: number, depth = 3): BisResult {
   const bySlot = (slots: string[]) => pool.filter((p) => slots.includes(p.item.slot));
 
   const slots = GEAR_SLOTS.filter((s) => s !== "Ranged" || cls.ranged.length > 0).map((slot) => {
@@ -160,6 +167,101 @@ export function bestInSlot(items: KbItem[], cls: ClassInfo, level: number, o: Ge
   };
   const [weapons, altWeapons] = thTotal >= pairTotal ? [thSet, pairSet] : [pairSet, thSet];
   return { slots, weapons, altWeapons: altWeapons.picks.length ? altWeapons : null };
+}
+
+export interface PlanOptions {
+  /** Which routes count. Defaults to quests and dungeons, the fast ones while levelling. */
+  routes?: RouteKind[];
+  faction?: "alliance" | "horde";
+  minQuality?: number;
+  /** Count random drops from dungeon trash mobs too. */
+  includeTrash?: boolean;
+}
+
+/** Usable items you can reach at this level by the chosen routes, best first. */
+export function planCandidates(items: KbItem[], cls: ClassInfo, level: number, index: RouteIndex, o: PlanOptions = {}): Pick[] {
+  const routes = o.routes ?? FAST_ROUTES;
+  const out: Pick[] = [];
+  for (const item of items) {
+    if ((QUALITY_RANK[item.quality] ?? 0) < (o.minQuality ?? 2)) continue;
+    if (!canUse(item, cls, level)) continue;
+    const route = index.get(item);
+    if (!routes.includes(route.kind) || !reachable(route, level, o.faction, o.includeTrash)) continue;
+    if (route.kind !== "quest" && route.kind !== "dungeon" && !factionOk(item.source, o.faction)) continue;
+    out.push({ item, score: scoreItem(item, cls), source: classifySource(item.source, item.sourceTypes), route });
+  }
+  return out.sort((a, b) => b.score - a.score);
+}
+
+/** Levelling best in slot: the strongest quest and dungeon gear you can get at this level. */
+export function levellingBis(items: KbItem[], cls: ClassInfo, level: number, index: RouteIndex, o: PlanOptions = {}, depth = 3): BisResult {
+  return bisFromPool(planCandidates(items, cls, level, index, o), cls, level, depth);
+}
+
+export interface Upgrade {
+  level: number;
+  slot: string;
+  pick: Pick;
+  /** The previous best for this slot, if any. */
+  replaces: Pick | null;
+}
+
+/** The levels where your best quest or dungeon piece for a slot changes, from one level to another. */
+export function upgradePath(items: KbItem[], cls: ClassInfo, from: number, to: number, index: RouteIndex, o: PlanOptions = {}): Upgrade[] {
+  const best = new Map<string, Pick>();
+  const owned = new Set<number>();
+  const out: Upgrade[] = [];
+  for (let level = from; level <= to; level++) {
+    const bis = levellingBis(items, cls, level, index, o, 2);
+    const tops: [string, Pick | undefined][] = bis.slots.flatMap(({ slot, picks }) =>
+      slot === "Finger" || slot === "Trinket"
+        ? [[`${slot} 1`, picks[0]], [`${slot} 2`, picks[1]]] as [string, Pick | undefined][]
+        : [[slot, picks[0]]] as [string, Pick | undefined][]);
+    bis.weapons.picks.slice(0, bis.weapons.label === "Two-handed" ? 1 : 2).forEach((p, i) => tops.push([i ? "Off hand" : "Weapon", p]));
+    for (const [slot, pick] of tops) {
+      if (!pick) continue;
+      const prev = best.get(slot) ?? null;
+      if (prev?.item.id === pick.item.id) continue;
+      best.set(slot, pick);
+      // A ring or trinket moving from the first to the second place is something you already have.
+      if (owned.has(pick.item.id) || (prev && pick.score <= prev.score)) continue;
+      owned.add(pick.item.id);
+      if (level > from) out.push({ level, slot: slot.replace(/ \d$/, ""), pick, replaces: prev });
+    }
+  }
+  return out;
+}
+
+export interface DungeonValue {
+  dungeonId: string;
+  dungeon: string;
+  minLevel: number;
+  maxLevel: number;
+  picks: Pick[];
+}
+
+/** Dungeons ranked by how many of your best-in-slot picks drop there or come from their quests. */
+export function dungeonsWorthRunning(bis: BisResult): DungeonValue[] {
+  const all = [...bis.slots.flatMap((s) => s.picks.slice(0, s.slot === "Finger" || s.slot === "Trinket" ? 2 : 1)), ...bis.weapons.picks.slice(0, 2)];
+  const map = new Map<string, DungeonValue>();
+  for (const p of all) {
+    const r = p.route;
+    const name = r?.kind === "dungeon" ? r.dungeon : r?.kind === "quest" ? r.dungeon : null;
+    if (!r || !name) continue;
+    const v = map.get(name) ?? { dungeonId: r.kind === "dungeon" ? r.dungeonId : "", dungeon: name, minLevel: 0, maxLevel: 0, picks: [] };
+    if (r.kind === "dungeon") Object.assign(v, { dungeonId: r.dungeonId, minLevel: r.minLevel, maxLevel: r.maxLevel });
+    if (!v.picks.some((x) => x.item.id === p.item.id)) v.picks.push(p);
+    map.set(name, v);
+  }
+  return [...map.values()].sort((a, b) => b.picks.length - a.picks.length || a.minLevel - b.minLevel);
+}
+
+/** Map an equipped item to the planner's slot names. */
+export function plannerSlot(item: KbItem): string | null {
+  if (["Two-Hand", "One-Hand", "Main Hand"].includes(item.slot)) return "Weapon";
+  if (["Off Hand", "Shield", "Held In Off-hand"].includes(item.slot)) return "Off hand";
+  if (item.slot === "Thrown") return "Ranged";
+  return (GEAR_SLOTS as readonly string[]).includes(item.slot) ? item.slot : null;
 }
 
 /** "Crafted: Engineering 175 (learned from recipe)" → { profession: "Engineering", skill: 175 } */

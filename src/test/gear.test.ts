@@ -7,7 +7,7 @@ const item = (p: Partial<KbItem>): KbItem => ({
   id: 1, name: "Item", quality: "uncommon", itemLevel: 30, req: 25, itemClass: "Armor", subclass: "Leather", slot: "Chest",
   classMask: -1, bind: "", unique: false, speed: null, minDmg: null, maxDmg: null, dps: null, armor: 100, stats: {},
   effects: null, set: null, description: null, sellPrice: null, source: "Drop: Boss (lvl 30 elite, Dungeon, 20%)",
-  sourceTypes: ["drop"], startsQuest: null, ...p,
+  sourceTypes: ["drop"], startsQuest: null, rep: null, ...p,
 });
 const hunter = CLASSES.hunter;
 

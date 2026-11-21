@@ -38,6 +38,8 @@ export interface KbItem {
   sellPrice: number | null;
   source: string | null;
   sourceTypes: string[];
+  /** Reputation needed to buy it, e.g. "Warsong Outriders - Honored". */
+  rep: string | null;
   startsQuest: number | null;
 }
 
@@ -110,6 +112,7 @@ export function parseKb(raw: RawKb): KbData {
       sellPrice: num(r[f.sell]),
       source: str(r[f.src]),
       sourceTypes: (str(r[f.srcTypes]) ?? "").split(",").filter(Boolean),
+      rep: f.rep === undefined ? null : str(r[f.rep]),
       startsQuest: num(r[f.startsQuest]),
     };
   });

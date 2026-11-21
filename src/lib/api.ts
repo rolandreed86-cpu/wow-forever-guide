@@ -52,10 +52,23 @@ function snapshotDungeon(id: string): Promise<DungeonDetail> {
   });
 }
 
+function snapshotDetails(): Promise<Record<string, DungeonDetail>> {
+  detailsCache ??= getJson<Record<string, DungeonDetail>>(`${DATA_BASE}fc/dungeon-details.json`);
+  return detailsCache;
+}
+
+async function liveDetails(): Promise<Record<string, DungeonDetail>> {
+  const list = await live<Dungeon[]>("/dungeons")();
+  const out: Record<string, DungeonDetail> = {};
+  for (const d of list) out[d.id] = await live<DungeonDetail>(`/dungeons/${encodeURIComponent(d.id)}`)();
+  return out;
+}
+
 export const fc = LIVE
   ? {
       dungeons: live<Dungeon[]>("/dungeons"),
       dungeon: (id: string) => live<DungeonDetail>(`/dungeons/${encodeURIComponent(id)}`)(),
+      dungeonDetails: liveDetails,
       quests: () => getAll<Quest>("/quests"),
       items: () => getAll<ApiItem>("/items"),
       rares: live<Rare[]>("/rares"),
@@ -66,6 +79,7 @@ export const fc = LIVE
   : {
       dungeons: snap<Dungeon[]>("dungeons.json"),
       dungeon: snapshotDungeon,
+      dungeonDetails: snapshotDetails,
       quests: snap<Quest[]>("quests.json"),
       items: () => Promise.resolve([] as ApiItem[]),
       rares: snap<Rare[]>("rares.json"),
