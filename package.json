@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "snapshot": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/snapshot.mjs"
+    "snapshot": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/snapshot.mjs",
+    "sync:character": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/sync-character.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.59.0",

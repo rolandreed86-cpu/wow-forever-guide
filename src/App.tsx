@@ -10,6 +10,7 @@ import Talents from "@/pages/Talents";
 import Professions from "@/pages/Professions";
 import Collections from "@/pages/Collections";
 import About from "@/pages/About";
+import Progress from "@/pages/Progress";
 import { PageTitle } from "@/components/States";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } });
@@ -27,6 +28,7 @@ function View() {
     case "professions": page = <Professions />; break;
     case "collections": page = <Collections />; break;
     case "about": page = <About />; break;
+    case "progress": page = <Progress />; break;
     default: page = <PageTitle eyebrow="Lost" title="This path leads nowhere">Use the tabs above to find your way back.</PageTitle>;
   }
   return <Layout view={view}>{page}</Layout>;

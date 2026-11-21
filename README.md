@@ -32,6 +32,20 @@ Blizzard's official API doesn't yet expose trainer spells or dungeon loot for Fo
 
 `npm run snapshot` downloads all of it into `public/data/` (not committed, since two sources state no licence for redistribution). The app reads only those bundled files, so it runs standalone with no calls to other sites. Set `VITE_DATA_MODE=live` to read the community feeds directly instead.
 
+## Live character tracking
+
+The Progress page and the header follow your real character, read from Blizzard's WoW Forever Profile API
+(`profile-forever-{region}` namespace): level, class, faction, professions, talent points per tree, equipped gear and item level.
+
+1. Create a free API client at <https://develop.battle.net/access/clients>.
+2. Add `BLIZZARD_CLIENT_ID` and `BLIZZARD_CLIENT_SECRET` as environment secrets (never commit them).
+3. Put your character in `sync.config.json` as `"character": "name-surname"` with `"region": "eu"` or `"us"`.
+4. Run `npm run sync:character`. It rewrites `src/data/character.json` only when something changed and prints what changed.
+
+A daily scheduled job runs the sync. When it reports changes, it commits them on a `sync/character-YYYY-MM-DD` branch,
+opens a pull request with the change list, then rebuilds and republishes the hosted page.
+Blizzard lists a character from level 10, and only after it logs out. Edits you make by hand in the app stay until the next sync.
+
 ## Develop
 
 ```sh

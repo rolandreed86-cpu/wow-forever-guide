@@ -34,6 +34,7 @@ export const Star = (p: P) => <Svg {...p}><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1
 export const Chevron = (p: P) => <Svg {...p}><path d="m9 6 6 6-6 6" /></Svg>;
 export const External = (p: P) => <Svg {...p} size={p.size ?? 14}><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" /></Svg>;
 export const Horse = (p: P) => <Svg {...p}><path d="M5 20v-6l3-5 2-5 2 3h3l3 3-2 2-3-1-1 3v6M9 20v-4" /></Svg>;
+export const Trend = (p: P) => <Svg {...p}><path d="M3 19h18M4 16l5-5 4 3 7-8" /><path d="M15 6h5v5" /></Svg>;
 
 export const KIND_ICON = {
   spell: Star, armor: Shield, weapon: Bow, talent: Book, pet: Paw, mount: Horse,
