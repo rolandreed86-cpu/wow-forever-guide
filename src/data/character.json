@@ -1,4 +1,141 @@
 {
-  "character": null,
-  "history": []
+  "character": {
+    "name": "Kurt Barren",
+    "realm": "PvP",
+    "className": "Hunter",
+    "classId": "hunter",
+    "race": "Human",
+    "level": 32,
+    "faction": "alliance",
+    "guild": null,
+    "itemLevel": 26,
+    "talents": {
+      "Beast Mastery": 1,
+      "Marksmanship": 10,
+      "Survival": 7
+    },
+    "equipment": [
+      {
+        "slot": "Head",
+        "id": 273645,
+        "name": "Blindwatcher's Sight",
+        "quality": "rare"
+      },
+      {
+        "slot": "Shoulder",
+        "id": 5254,
+        "name": "Rugged Spaulders",
+        "quality": "rare"
+      },
+      {
+        "slot": "Back",
+        "id": 271716,
+        "name": "Explorer's League Dustcover",
+        "quality": "rare"
+      },
+      {
+        "slot": "Chest",
+        "id": 273026,
+        "name": "Garb of Florid Feathers",
+        "quality": "rare"
+      },
+      {
+        "slot": "Waist",
+        "id": 273041,
+        "name": "Slitherwrap Girdle",
+        "quality": "rare"
+      },
+      {
+        "slot": "Shirt",
+        "id": 3426,
+        "name": "Bold Yellow Shirt",
+        "quality": "common"
+      },
+      {
+        "slot": "Wrist",
+        "id": 270032,
+        "name": "Cultist's Armguards",
+        "quality": "rare"
+      },
+      {
+        "slot": "Hands",
+        "id": 273824,
+        "name": "Defias Jailbreakers",
+        "quality": "rare"
+      },
+      {
+        "slot": "Legs",
+        "id": 10400,
+        "name": "Blackened Defias Leggings",
+        "quality": "rare"
+      },
+      {
+        "slot": "Feet",
+        "id": 10402,
+        "name": "Blackened Defias Boots",
+        "quality": "rare"
+      },
+      {
+        "slot": "Finger",
+        "id": 1156,
+        "name": "Lavishly Jeweled Ring",
+        "quality": "rare"
+      },
+      {
+        "slot": "Finger",
+        "id": 6743,
+        "name": "Sustaining Ring",
+        "quality": "uncommon"
+      },
+      {
+        "slot": "Trinket",
+        "id": 273840,
+        "name": "Cursed Murloc Eye",
+        "quality": "rare"
+      },
+      {
+        "slot": "Trinket",
+        "id": 280766,
+        "name": "Satchel of Potions",
+        "quality": "uncommon"
+      },
+      {
+        "slot": "Main hand",
+        "id": 3186,
+        "name": "Viking Sword",
+        "quality": "uncommon"
+      },
+      {
+        "slot": "Ranged",
+        "id": 273029,
+        "name": "Golemsight Long Gun",
+        "quality": "rare"
+      },
+      {
+        "slot": "Off hand",
+        "id": 2941,
+        "name": "Prison Shank",
+        "quality": "rare"
+      }
+    ],
+    "lastSeen": "2026-11-14T12:03:08.704Z",
+    "region": "EU",
+    "professions": {},
+    "professionMax": {},
+    "professionsFrom": null,
+    "links": [
+      {
+        "label": "Raider.IO",
+        "url": "https://forever.raider.io/characters/eu/pvp/Kurt%20Barren"
+      }
+    ],
+    "syncedAt": "2026-11-21T05:49:53.934Z"
+  },
+  "history": [
+    {
+      "date": "2026-11-21",
+      "level": 32,
+      "professions": {}
+    }
+  ]
 }
