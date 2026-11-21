@@ -7,6 +7,8 @@ const long = { staleTime: 6 * 60 * 60 * 1000, gcTime: 24 * 60 * 60 * 1000, retry
 export const useDungeons = () => useQuery({ queryKey: ["dungeons"], queryFn: fc.dungeons, ...long });
 export const useDungeon = (id: string | undefined) =>
   useQuery({ queryKey: ["dungeon", id], queryFn: () => fc.dungeon(id!), enabled: !!id, ...long });
+/** Every dungeon with its loot table and quests. */
+export const useDungeonDetails = () => useQuery({ queryKey: ["dungeon-details"], queryFn: fc.dungeonDetails, ...long });
 export const useQuests = () => useQuery({ queryKey: ["quests"], queryFn: fc.quests, ...long });
 export const useRares = () => useQuery({ queryKey: ["rares"], queryFn: fc.rares, ...long });
 export const useZones = () => useQuery({ queryKey: ["zones"], queryFn: fc.zones, ...long });
