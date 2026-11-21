@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "@/lib/router";
 import { CLASSES } from "@/data/classes";
 import { LATER_CONTENT, RAIDS } from "@/data/raids";
 import { useCharacter } from "@/lib/character";
@@ -88,12 +88,11 @@ function DungeonCard({ d, level }: { d: Dungeon; level: number }) {
     </>
   );
   return d.status === "launch"
-    ? <Link to={`/dungeons/${d.id}`} className="row">{body}</Link>
+    ? <Link to={`dungeon-${d.id}`} className="row">{body}</Link>
     : <div className="row opacity-80">{body}</div>;
 }
 
-export function DungeonDetail() {
-  const { id } = useParams();
+export function DungeonDetail({ id }: { id: string }) {
   const { character } = useCharacter();
   const cls = CLASSES[character.classId];
   const q = useDungeon(id);
@@ -119,7 +118,7 @@ export function DungeonDetail() {
 
   return (
     <section className="flex flex-col gap-5">
-      <div><Link to="/dungeons" className="text-sm">← All dungeons</Link></div>
+      <div><Link to="dungeons" className="text-sm">← All dungeons</Link></div>
       <PageTitle eyebrow={`${d.zone} · levels ${d.minLevel}–${d.maxLevel}`} title={d.name}>
         {d.entrance}
       </PageTitle>
@@ -172,8 +171,8 @@ export function DungeonDetail() {
           <div className="parch p-5 flex flex-col gap-3">
             <div className="lbl">Quests</div>
             {d.quests.length === 0 && <div className="italic text-[15px]">No quests recorded.</div>}
-            {d.quests.filter((x) => !x.faction || x.faction === "both" || x.faction === character.faction).map((x) => (
-              <div key={x.questId} className="flex flex-col">
+            {d.quests.filter((x) => !x.faction || x.faction === "both" || x.faction === character.faction).map((x, i) => (
+              <div key={`${x.questId}-${i}`} className="flex flex-col">
                 <a href={x.wowhead} target="_blank" rel="noreferrer" className="font-bold !text-[#5a1a12]">{x.name}</a>
                 <span className="text-sm text-[#47331a]">
                   <span className={`font-bold con-${conColor(character.level, x.level)}`}>[{x.level}]</span> from {x.giver ?? "unknown"}{x.location ? `, ${x.location}` : ""}

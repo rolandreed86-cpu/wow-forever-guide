@@ -9,6 +9,7 @@ A companion app for **World of Warcraft: Forever**. It tells you what's coming a
 | Page | What it does |
 |---|---|
 | **Guidance** | Your next big milestone (for example *mail armour at 40*), a level-by-level road ahead for the next 5, 10 or 20 levels, what unlocked at your level, gear to keep for an upcoming armour unlock, dungeons and key quests for your level, and profession goals. |
+| **Talents** | Talent planner for all nine classes with the Forever trees (including the new 16-point milestones), row gates, prerequisites, Legacy bonus points and full rank text. |
 | **Dungeons & Raids** | All Forever dungeons with level ranges and difficulty colours. Each dungeon shows loot by boss (filtered to your class, with full item tooltips), its quests and bosses. Forever's first three raids and the content roadmap. |
 | **Gear** | Best in slot for any level from 1 to 60, ranked with rough class stat weights. Choose whether to include crafted gear, rare world drops and raid loot. Crafted items are flagged when your professions can make them. |
 | **Quests** | Dungeon and elite quests near your level, searchable, with rewards, XP and prerequisites, plus your class quests and the Waylaid Supplies reputation. |
@@ -24,22 +25,25 @@ Your character (class, level, faction, professions) is set by clicking it in the
 
 Blizzard's official API doesn't yet expose trainer spells or dungeon loot for Forever, so the app combines:
 
-- **[Forever Companion API](https://forevercompanion.io/developers)**: dungeons, loot, quests, class quests, rares and reputations. Free, no key, open CORS, 120 requests per minute. Responses are cached in the browser for 6 hours.
-- **[wow-forever-kb](https://github.com/gBlaku/wow-forever-kb)**: about 22,700 items with stats and sources, rebuilt daily. Loaded at runtime (about 7 MB on first visit) and not copied into this repo, because that repo states no licence.
-- **Hand-curated files** in `src/data/`: hunter unlocks by level, general milestones, professions and raids, from warcraft.wiki.gg, Warcraft Tavern, Wowhead and Blizzard's class deep dives. Anything carried over from Classic and not yet confirmed for Forever is marked *Unconfirmed* in the app.
+- **[Forever Companion API](https://forevercompanion.io/developers)**: dungeons, loot, quests, class quests, rares and reputations.
+- **[wow-forever-kb](https://github.com/gBlaku/wow-forever-kb)**: item stats and sources (trimmed to gear, mounts, pets and crafts).
+- **[Talents Forever via WoW Forever Talent](https://wowforevertalent.com/sources/)**: talent trees and rank text, CC BY 4.0.
+- **Hand-curated files** in `src/data/`: hunter unlocks by level, general milestones, professions and raids. Anything carried over from Classic and not yet confirmed for Forever is marked *Unconfirmed* in the app.
 
-Both feeds can be pointed elsewhere with `VITE_FOREVER_COMPANION_API` and `VITE_KB_ITEMS_URL`.
+`npm run snapshot` downloads all of it into `public/data/` (not committed, since two sources state no licence for redistribution). The app reads only those bundled files, so it runs standalone with no calls to other sites. Set `VITE_DATA_MODE=live` to read the community feeds directly instead.
 
 ## Develop
 
 ```sh
 npm install
-npm run dev      # http://localhost:8080
-npm test         # unit tests (vitest)
-npm run build    # type-check and build to dist/
+npm run snapshot          # download game data into public/data (takes a minute; respects rate limits)
+npm run dev               # http://localhost:8080
+npm test                  # unit tests (vitest)
+npm run build             # type-check and build to dist/
+npm run build:standalone  # one self-contained page in dist-standalone/ (artifact.html + data/)
 ```
 
-Stack: Vite, React 18, TypeScript, Tailwind CSS, TanStack Query, React Router. It works as a Lovable project: import this GitHub repo into Lovable and it builds as is. There is no backend and nothing to log in to.
+Stack: Vite, React 18, TypeScript and Tailwind CSS. Routing uses plain hashes (`#gear`, `#dungeon-sm-armory`), so the build can be hosted anywhere as static files, including as a Claude artifact. There is no backend and nothing to log in to.
 
 ## Adding a class
 
