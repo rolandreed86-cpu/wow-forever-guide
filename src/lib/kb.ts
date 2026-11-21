@@ -1,0 +1,151 @@
+import type { StatKey } from "@/data/classes";
+
+/**
+ * wow-forever-kb (https://github.com/gBlaku/wow-forever-kb): ~22,700 WoW Forever items with full stats and sources,
+ * built from game client tables and rebuilt daily. Served as static JSON from GitHub Pages with open CORS.
+ * The repo states no licence, so the app reads it at runtime and does not copy it into this repo.
+ */
+export const KB_URL = (import.meta.env.VITE_KB_ITEMS_URL as string | undefined) ?? "https://gblaku.github.io/wow-forever-kb/items.json";
+
+export const QUALITY_NAMES = ["poor", "common", "uncommon", "rare", "epic", "legendary", "artifact", "heirloom"] as const;
+export type QualityName = (typeof QUALITY_NAMES)[number];
+
+export interface KbItem {
+  id: number;
+  name: string;
+  quality: QualityName;
+  itemLevel: number;
+  /** Required level (falls back to the item's level when the data has none). */
+  req: number;
+  itemClass: string;
+  subclass: string;
+  slot: string;
+  classMask: number;
+  bind: string;
+  unique: boolean;
+  speed: number | null;
+  minDmg: number | null;
+  maxDmg: number | null;
+  dps: number | null;
+  armor: number | null;
+  stats: Partial<Record<StatKey, number>>;
+  effects: string | null;
+  set: string | null;
+  description: string | null;
+  sellPrice: number | null;
+  source: string | null;
+  sourceTypes: string[];
+  startsQuest: number | null;
+}
+
+export interface KbQuest {
+  id: number;
+  name: string;
+  level: number;
+  req: number;
+  faction: string | null;
+  classes: string[] | null;
+  zone: string | null;
+  from: string | null;
+  to: string | null;
+  rewards: number[];
+}
+
+export interface KbData {
+  build: string;
+  items: KbItem[];
+  byId: Map<number, KbItem>;
+  quests: KbQuest[];
+}
+
+type Row = unknown[];
+interface RawKb {
+  build: string;
+  fields: string[];
+  stats: string[];
+  items: Row[];
+  questFields: string[];
+  quests: Row[];
+}
+
+const num = (v: unknown): number | null => (typeof v === "number" ? v : null);
+const str = (v: unknown): string | null => (typeof v === "string" && v.length ? v : null);
+
+export function parseKb(raw: RawKb): KbData {
+  const f = Object.fromEntries(raw.fields.map((name, i) => [name, i])) as Record<string, number>;
+  const statNames = raw.stats as StatKey[];
+  const items: KbItem[] = raw.items.map((r) => {
+    const stats: Partial<Record<StatKey, number>> = {};
+    const st = (r[f.st] as [number, number][] | null) ?? [];
+    for (const [idx, val] of st) {
+      const key = statNames[idx];
+      if (key) stats[key] = (stats[key] ?? 0) + val;
+    }
+    const req = num(r[f.req]) || num(r[f.lvl]) || 1;
+    const q = num(r[f.q]) ?? 1;
+    return {
+      id: r[f.id] as number,
+      name: r[f.name] as string,
+      quality: QUALITY_NAMES[q] ?? "common",
+      itemLevel: num(r[f.ilvl]) ?? 0,
+      req,
+      itemClass: (r[f.ic] as string) ?? "",
+      subclass: (r[f.sub] as string) ?? "",
+      slot: (r[f.slot] as string) ?? "",
+      classMask: num(r[f.mask]) ?? -1,
+      bind: (r[f.bind] as string) ?? "",
+      unique: Boolean(r[f.uniq]),
+      speed: num(r[f.speed]),
+      minDmg: num(r[f.min]),
+      maxDmg: num(r[f.max]),
+      dps: num(r[f.dps]),
+      armor: num(r[f.armor]),
+      stats,
+      effects: str(r[f.fx]),
+      set: str(r[f.set]),
+      description: str(r[f.desc]),
+      sellPrice: num(r[f.sell]),
+      source: str(r[f.src]),
+      sourceTypes: (str(r[f.srcTypes]) ?? "").split(",").filter(Boolean),
+      startsQuest: num(r[f.startsQuest]),
+    };
+  });
+  const qf = Object.fromEntries(raw.questFields.map((name, i) => [name, i])) as Record<string, number>;
+  const quests: KbQuest[] = (raw.quests ?? []).map((r) => ({
+    id: r[qf.id] as number,
+    name: r[qf.name] as string,
+    level: num(r[qf.qlvl]) ?? 0,
+    req: num(r[qf.req]) ?? 0,
+    faction: str(r[qf.faction]),
+    classes: (r[qf.classes] as string[] | null) ?? null,
+    zone: str(r[qf.zone]),
+    from: str(r[qf.from]),
+    to: str(r[qf.to]),
+    rewards: (r[qf.rewards] as number[] | null) ?? [],
+  }));
+  return { build: raw.build, items, byId: new Map(items.map((i) => [i.id, i])), quests };
+}
+
+export async function loadKb(): Promise<KbData> {
+  const res = await fetch(KB_URL);
+  if (!res.ok) throw new Error(`Item database returned ${res.status}`);
+  return parseKb((await res.json()) as RawKb);
+}
+
+export const STAT_LABELS: Record<StatKey, string> = {
+  agility: "Agility", strength: "Strength", stamina: "Stamina", intellect: "Intellect", spirit: "Spirit",
+  attack_power: "Attack Power", ranged_attack_power: "Ranged Attack Power", hit: "Hit", crit: "Critical Strike",
+  haste: "Haste", spell_power: "Spell Power", healing: "Healing", spell_damage: "Spell Damage", mp5: "Mana per 5 sec.",
+  defense: "Defense", dodge: "Dodge", parry: "Parry", block: "Block", block_value: "Block Value", bonus_armor: "Armor",
+  fire_res: "Fire Resistance", frost_res: "Frost Resistance", nature_res: "Nature Resistance",
+  shadow_res: "Shadow Resistance", arcane_res: "Arcane Resistance",
+};
+
+/** Primary stats show as "+N Stat"; the rest are "Equip:" lines like the game tooltip. */
+export const PRIMARY_STATS: StatKey[] = ["agility", "strength", "stamina", "intellect", "spirit", "fire_res", "frost_res", "nature_res", "shadow_res", "arcane_res"];
+
+export function formatMoney(copper: number | null): string {
+  if (!copper) return "";
+  const g = Math.floor(copper / 10000), s = Math.floor((copper % 10000) / 100), c = copper % 100;
+  return [g && `${g}g`, s && `${s}s`, c && `${c}c`].filter(Boolean).join(" ");
+}
