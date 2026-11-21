@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Wayfarer's Almanac design system: carved stone, worn gold and old parchment.
+   Stone frames hold lists and data; parchment is for things to read (guidance, quests, goals);
+   item tooltips stay cool silver on navy so items always look like items. */
+
+:root {
+  --stone: #120e0a;
+  --stone-deep: #0d0a07;
+  --iron: #1c1610;
+  --gold: #c9a24a;
+  --gold-bright: #f0cf7a;
+  --gold-pale: #e8c46a;
+  --parchment: #ead9b0;
+  --ink: #2b1e10;
+  --crimson: #5a1a12;
+  --bone: #e8dcc0;
+  --muted: #a8936a;
+}
+
+html { background: var(--stone-deep); }
+body {
+  margin: 0;
+  background: var(--stone);
+  color: var(--bone);
+  font-family: "Alegreya", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--gold-pale); }
+a:hover { color: #ffe29a; }
+:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+
+@layer components {
+  .cinzel { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.06em; }
+  .lbl {
+    font-family: "Cinzel", Georgia, serif; font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #c9b07a;
+  }
+  .parch .lbl { color: #6b4e22; }
+  .heading {
+    font-family: "Cinzel", Georgia, serif; font-weight: 900; color: var(--gold-bright);
+    letter-spacing: 0.04em; text-shadow: 0 2px 0 #000;
+  }
+  .frame {
+    background: var(--iron);
+    border: 2px solid; border-color: #c9a24a #6e5020 #4f3814 #a07a2c; border-radius: 6px;
+    box-shadow: inset 0 0 0 1px #000, inset 0 0 0 4px #2a2016, 0 3px 0 #000, 0 10px 24px rgba(0,0,0,.5);
+  }
+  .parch {
+    background: var(--parchment); color: var(--ink);
+    border: 2px solid #8a6a2f; border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #f6ead0, inset 0 0 36px rgba(120,78,28,.35), 0 3px 0 #000;
+  }
+  .rule { height: 2px; background: #6e5020; border: 0; margin: 0; box-shadow: 0 1px 0 #000; }
+  .tab {
+    font-family: "Cinzel", Georgia, serif; font-weight: 700; font-size: 14px; letter-spacing: .06em;
+    min-height: 44px; padding: 0 16px; color: #d9c79a; background: #231b12;
+    border: 2px solid #5a4219; border-radius: 4px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    box-shadow: inset 0 1px 0 #3a2d1c, 0 2px 0 #000;
+  }
+  .tab:hover { color: #fff1c8; border-color: #9a7429; }
+  .tab.on, .tab[aria-current="page"] {
+    color: #1c1206; background: #d9b25a;
+    border-color: #f3d688 #8c6522 #6b4c17 #c99c3f;
+    box-shadow: inset 0 1px 0 #fff0bd, 0 2px 0 #000;
+  }
+  .btn {
+    font-family: "Cinzel", Georgia, serif; font-weight: 700; font-size: 13px; letter-spacing: .06em;
+    min-height: 44px; padding: 0 14px; border-radius: 4px; cursor: pointer;
+    color: #f3e3b8; background: var(--crimson);
+    border: 2px solid; border-color: #c9a24a #6e5020 #4f3814 #a07a2c;
+    box-shadow: inset 0 1px 0 #8a3a2a, 0 2px 0 #000;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { color: #fff; background: #6e2318; }
+  .btn.ghost { background: #231b12; box-shadow: inset 0 1px 0 #3a2d1c, 0 2px 0 #000; }
+  .row {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    min-height: 44px; padding: 8px 12px; background: #18120c;
+    border: 1px solid #3a2c1a; border-radius: 4px; color: inherit; font: inherit; text-decoration: none;
+  }
+  a.row:hover, button.row:hover { border-color: #9a7429; background: #20180f; color: inherit; }
+  .row.on { border-color: #e0b85c; background: #2a2012; box-shadow: inset 0 0 0 1px #e0b85c; }
+  .tip {
+    background: #0d0f1d; border: 2px solid #9aa0b8; border-radius: 5px;
+    box-shadow: inset 0 0 0 1px #000, 0 8px 20px rgba(0,0,0,.6);
+    color: #fff; padding: 14px 16px; font-size: 15px; line-height: 1.35;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px;
+    border-radius: 999px; border: 1px solid #6e5020; background: #221a10; color: #e8d5a4; white-space: nowrap;
+  }
+  .pill.ink { border-color: #8a6a2f; background: #f4e7c5; color: #3b2a14; }
+  .pill.good { border-color: #3f7a2a; color: #b9f09a; background: #13210d; }
+  .pill.warn { border-color: #8a4a1a; color: #ffc48a; background: #2a160a; }
+  .pill.new { border-color: #6a4aa8; color: #dcc6ff; background: #1c1330; }
+  .bar { height: 10px; border-radius: 5px; background: #0a0806; border: 1px solid #4f3814; overflow: hidden; }
+  .bar > div { height: 100%; background: #c99a3a; box-shadow: inset 0 1px 0 #ffe29a; }
+  .bar.xp > div { background: #8a4fd8; box-shadow: inset 0 1px 0 #c9a3ff; }
+  .field {
+    min-height: 44px; padding: 0 12px; background: #0f0b07; color: var(--bone);
+    border: 2px solid #5a4219; border-radius: 4px; font: inherit;
+  }
+  .field:focus { border-color: var(--gold); outline: none; }
+  .parch .field { background: #f6ead0; color: var(--ink); border-color: #8a6a2f; }
+
+}
+
+/* Quality and difficulty colours sit outside @layer so Tailwind never purges the dynamic class names. */
+.q-poor { color: #9d9d9d; } .q-common { color: #f4f1ea; } .q-uncommon { color: #2bdc2b; }
+.q-rare { color: #4aa3ff; } .q-epic { color: #c27fff; } .q-legendary { color: #ff8a1a; }
+.q-artifact { color: #e6cc80; } .q-heirloom { color: #00ccff; }
+.con-grey { color: #a8a8a8; } .con-green { color: #4fd34f; } .con-yellow { color: #ffd23f; }
+.con-orange { color: #ff9a3c; } .con-red { color: #ff5a4a; }
+.parch .con-grey { color: #5d5d5d; } .parch .con-green { color: #1f6e1f; } .parch .con-yellow { color: #7a5a00; }
+.parch .con-orange { color: #8a3f00; } .parch .con-red { color: #8a1a10; }
