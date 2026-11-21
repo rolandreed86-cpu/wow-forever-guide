@@ -7,6 +7,7 @@
    item tooltips stay cool silver on navy so items always look like items. */
 
 :root {
+  color-scheme: dark;
   --stone: #120e0a;
   --stone-deep: #0d0a07;
   --iron: #1c1610;
@@ -30,6 +31,8 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
+.app-wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+@media (min-width: 640px) { .app-wrap { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); } }
 a { color: var(--gold-pale); }
 a:hover { color: #ffe29a; }
 :focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }

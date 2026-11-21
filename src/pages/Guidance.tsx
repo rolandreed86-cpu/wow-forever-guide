@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router";
 import { CLASSES } from "@/data/classes";
 import type { Milestone } from "@/data/milestones";
 import { ENGINEERING_PATH, MINING_NODES, PROFESSION_TIERS, maxSkillForLevel } from "@/data/professions";
@@ -154,11 +154,11 @@ export default function Guidance() {
           )}
 
           <div className="frame p-5 flex flex-col gap-3">
-            <div className="flex justify-between items-center"><div className="lbl">Dungeons for you</div><Link to="/dungeons" className="text-sm">All</Link></div>
+            <div className="flex justify-between items-center"><div className="lbl">Dungeons for you</div><Link to="dungeons" className="text-sm">All</Link></div>
             {dungeons.isLoading && <div className="text-muted italic text-[15px]">Loading dungeons…</div>}
             {dungeons.isError && <div className="text-muted italic text-[15px]">Dungeon data is unavailable right now.</div>}
             {myDungeons.map(({ d, fit }) => (
-              <Link key={d.id} to={`/dungeons/${d.id}`} className="row">
+              <Link key={d.id} to={`dungeon-${d.id}`} className="row">
                 <span className="flex-1 min-w-0">
                   <span className="font-bold block">{d.name}</span>
                   <span className="text-sm text-muted">{d.zone}{d.isNew ? " · new" : ""}</span>
@@ -171,10 +171,10 @@ export default function Guidance() {
           </div>
 
           <div className="parch p-5 flex flex-col gap-3">
-            <div className="flex justify-between items-center"><div className="lbl">Key quests for you</div><Link to="/quests" className="text-sm !text-[#5a1a12]">All</Link></div>
+            <div className="flex justify-between items-center"><div className="lbl">Key quests for you</div><Link to="quests" className="text-sm !text-[#5a1a12]">All</Link></div>
             {quests.isLoading && <div className="italic text-[15px]">Loading quests…</div>}
-            {keyQuests.map((q) => (
-              <div key={q.questId} className="flex flex-col">
+            {keyQuests.map((q, i) => (
+              <div key={`${q.questId}-${i}`} className="flex flex-col">
                 <a href={q.wowhead} target="_blank" rel="noreferrer" className="font-bold !text-[#5a1a12]">{q.name}</a>
                 <span className="text-sm text-[#47331a]">
                   <span className={`font-bold con-${conColor(character.level, q.level)}`}>[{q.level}]</span> {q.dungeon ? q.dungeon.name : q.zone ?? q.location}
@@ -204,7 +204,7 @@ function ProfessionGoals() {
   if (!Object.keys(character.professions).length) return null;
   return (
     <div className="frame p-5 flex flex-col gap-3">
-      <div className="flex justify-between items-center"><div className="lbl">Profession goals</div><Link to="/professions" className="text-sm">Details</Link></div>
+      <div className="flex justify-between items-center"><div className="lbl">Profession goals</div><Link to="professions" className="text-sm">Details</Link></div>
       {capped.length > 0 && nextTier && (
         <div className="text-[15px]"><span className="pill warn">Capped</span> {capped.map(([p]) => p).join(" and ")} at {cap}. {nextTier.name} training ({nextTier.cap}) opens at level {nextTier.level}.</div>
       )}

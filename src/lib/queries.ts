@@ -14,3 +14,17 @@ export const useReputations = () => useQuery({ queryKey: ["reputations"], queryF
 export const useClassQuests = () => useQuery({ queryKey: ["class-quests"], queryFn: fc.classQuests, ...long });
 /** The full item database (~7 MB, fetched once and kept in memory). */
 export const useKb = () => useQuery({ queryKey: ["kb"], queryFn: loadKb, staleTime: Infinity, gcTime: Infinity, retry: 1 });
+
+import type { TalentClass } from "./talents";
+import { DATA_BASE } from "./api";
+/** Talent trees for one class (bundled snapshot). */
+export const useTalents = (classId: string) =>
+  useQuery({
+    queryKey: ["talents", classId],
+    queryFn: async () => {
+      const res = await fetch(`${DATA_BASE}talents/${classId}.json`);
+      if (!res.ok) throw new Error(`Couldn't load talents for ${classId} (${res.status})`);
+      return (await res.json()) as TalentClass;
+    },
+    staleTime: Infinity,
+  });

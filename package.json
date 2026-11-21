@@ -6,15 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:standalone": "tsc -b && vite build --mode standalone && node scripts/to-artifact.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "snapshot": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/snapshot.mjs",
+    "sync:character": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/sync-character.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.59.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-router-dom": "6.26.2"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@types/node": "22.7.4",
@@ -26,6 +28,7 @@
     "tailwindcss": "3.4.13",
     "typescript": "5.6.2",
     "vite": "5.4.8",
+    "vite-plugin-singlefile": "^2.0.2",
     "vitest": "2.1.2"
   }
 }

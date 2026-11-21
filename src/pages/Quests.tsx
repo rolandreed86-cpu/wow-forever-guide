@@ -62,8 +62,8 @@ export default function Quests() {
           {q.data && <div className="text-sm text-muted">{list.length} quests</div>}
 
           <div className="flex flex-col gap-2">
-            {list.slice(0, 150).map((x) => (
-              <article key={x.questId} className="frame px-4 py-3 flex flex-col gap-1">
+            {list.slice(0, 150).map((x, i) => (
+              <article key={`${x.questId}-${x.faction}-${i}`} className="frame px-4 py-3 flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`font-bold con-${conColor(character.level, x.level)}`}>[{x.level}]</span>
                   <a href={x.wowhead} target="_blank" rel="noreferrer" className="font-bold">{x.name}</a>
