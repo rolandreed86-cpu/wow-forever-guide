@@ -94,6 +94,30 @@ export interface ScoredPet {
   warnings: string[];
 }
 
+const SHARED_RANK_LEVELS: Record<string, number[]> = {
+  Bite: [1, 8, 16, 24, 32, 40, 48, 56],
+  Claw: [1, 8, 16, 24, 32, 40, 48, 56],
+  Dash: [30, 40, 50],
+  Dive: [30, 40, 50],
+};
+
+/** How many of the ranks a beast knows are the best you can have at this level (no training needed). */
+export function upToDateRanks(beast: Beast, family: PetFamily, level: number): number {
+  let n = 0;
+  for (const t of beast.teaches ?? []) {
+    const m = /^(.*) (\d+)$/.exec(t);
+    if (!m) continue;
+    const [, name, r] = m;
+    const table = name === family.unique.name ? family.unique.ranks.map((x) => x.level) : SHARED_RANK_LEVELS[name];
+    if (!table) continue;
+    const best = family.unique.name === name
+      ? family.unique.ranks.filter((x) => x.level <= level).pop()?.rank ?? 0
+      : table.filter((l) => l <= level).length;
+    if (parseInt(r, 10) >= best && best > 0) n++;
+  }
+  return n;
+}
+
 /** Does the family's unique ability raise your own damage as this spec? */
 function buffsYou(family: PetFamily, spec: Spec) {
   return family.unique.kind === "party-buff" && spec === "survival";
@@ -135,6 +159,8 @@ export function scorePet(beast: Beast, opts: PetOptions): ScoredPet | null {
   }
   if (buffsYou(family, spec)) reasons.push("the howl raises your own melee attack power as Survival");
   if (beast.teaches?.length) reasons.push(`already knows ${beast.teaches.join(", ")}`);
+  const fresh = upToDateRanks(beast, family, level);
+  if (fresh) score += Math.min(3, fresh * 1.5);
 
   // A pet far below your level has to catch up: pets get 25% of your XP and no quest XP.
   const gap = level - beast.maxLevel;
@@ -233,6 +259,61 @@ export function bracketPicks(opts: Omit<PetOptions, "level">, beasts: Beast[] = 
     }
     return { bracket, best: unique[0] ?? null, runnersUp: unique.slice(1, 3) };
   });
+}
+
+/** The best beast of one family for every bracket from 10 to 60, so a family can be planned all the way to 60. */
+export function familyRoadmap(familyId: string, opts: Omit<PetOptions, "level">, beasts: Beast[] = BEASTS): { bracket: Bracket; best: ScoredPet | null }[] {
+  return bracketPicks(opts, beasts.filter((b) => b.family === familyId)).map(({ bracket, best }) => ({ bracket, best }));
+}
+
+export interface PlanStep {
+  /** First level of the step. The beast may only be tameable a few levels in (pet.beast.minLevel). */
+  from: number;
+  /** The last level of the step. */
+  to: number;
+  /** The best beast to tame during this step. */
+  pet: ScoredPet;
+  /** The previous step's pet, if keeping it (it levels with you) is within KEEP_MARGIN points of taming this one. */
+  keep: ScoredPet | null;
+}
+
+/** Points a new tame must gain over the levelled pet you already have before it's worth the trip. */
+export const KEEP_MARGIN = 2;
+export const PLAN_STEP = 5;
+
+/**
+ * Your pet plan from level 10 to 60: the best beast to tame in every 5-level step (repeats merged), and whether
+ * the pet from the step before, which has levelled with you, is nearly as good.
+ */
+export function petPlan(opts: Omit<PetOptions, "level">, from = 10, beasts: Beast[] = BEASTS): PlanStep[] {
+  const steps: PlanStep[] = [];
+  for (let level = from; level <= 60; level += PLAN_STEP) {
+    const end = Math.min(60, level + PLAN_STEP - 1);
+    const pool = beasts.filter((b) => b.minLevel <= end && b.maxLevel >= level - PLAN_STEP - 1);
+    const top = rankPets({ ...opts, level: end }, pool)[0];
+    if (!top) continue;
+    const last = steps[steps.length - 1];
+    if (last && last.pet.beast.name === top.beast.name) { last.to = end; continue; }
+    let keep: ScoredPet | null = null;
+    if (last) {
+      const kept = scorePet({ ...last.pet.beast, maxLevel: end }, { ...opts, level: end });
+      if (kept && top.score < kept.score + KEEP_MARGIN) keep = kept;
+    }
+    steps.push({ from: level, to: end, pet: top, keep });
+  }
+  return steps;
+}
+
+/** Every beast of a family, including ones above this level (scored at the level you could first tame them). */
+export function allOfFamily(familyId: string, opts: PetOptions, beasts: Beast[] = BEASTS): { now: ScoredPet[]; later: ScoredPet[] } {
+  const fam = beasts.filter((b) => b.family === familyId);
+  const now = rankPets(opts, fam);
+  const later = fam
+    .filter((b) => b.minLevel > opts.level)
+    .sort((a, b) => a.minLevel - b.minLevel || a.name.localeCompare(b.name))
+    .map((b) => scorePet(b, { ...opts, level: b.minLevel }))
+    .filter((x): x is ScoredPet => x !== null);
+  return { now, later };
 }
 
 /** Rank the families themselves for a level (using a typical, default-speed beast). */

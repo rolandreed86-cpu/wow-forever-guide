@@ -3,8 +3,8 @@ import { useCharacter } from "@/lib/character";
 import { conColor } from "@/lib/level";
 import { PET_FAMILIES, PET_SOURCES, zoneSide, type Context, type PetFamily } from "@/data/pets";
 import {
-  BASE_SWING, CONTEXT_LABEL, comingUp, SPEC_LABEL, abilityRankAt, bestPerFamily, bracketPicks, loneWolfNote, rankPets,
-  rankWithinFamily, weightsFor, type ScoredPet, type Spec,
+  BASE_SWING, CONTEXT_LABEL, comingUp, SPEC_LABEL, abilityRankAt, allOfFamily, bestPerFamily, bracketPicks, familyRoadmap,
+  loneWolfNote, petPlan, rankPets, weightsFor, type ScoredPet, type Spec,
 } from "@/lib/pets";
 import { PageTitle } from "@/components/States";
 
@@ -41,6 +41,7 @@ export default function Pets() {
   );
   const brackets = useMemo(() => bracketPicks({ spec, context, faction: character.faction }), [spec, context, character.faction]);
   const soon = useMemo(() => comingUp(opts), [opts]);
+  const plan = useMemo(() => petPlan({ spec, context, faction: character.faction }), [spec, context, character.faction]);
   const lone = loneWolfNote(spec, context);
   const w = weightsFor(context, spec);
   const isHunter = character.classId === "hunter";
@@ -114,6 +115,32 @@ export default function Pets() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="frame p-5 flex flex-col gap-3">
+        <div className="lbl">Your pet plan from 10 to 60 · {CONTEXT_LABEL[context]} · {SPEC_LABEL[spec]}</div>
+        <p className="m-0 text-sm text-muted">The best beast to tame in every 5-level step up to 60. Your current pet keeps levelling with you, so where the gain is small the step says to keep it. Tap a step to jump the page to that level.</p>
+        <ol className="m-0 p-0 list-none flex flex-col gap-2">
+          {plan.map((st) => {
+            const mine = character.level >= st.from && character.level <= st.to;
+            return (
+              <li key={`${st.from}-${st.pet.beast.name}`}>
+                <button type="button" onClick={() => setLevel(st.from)}
+                  className={`row !min-h-0 w-full text-left cursor-pointer flex-wrap !gap-x-4 !gap-y-1 ${mine ? "!border-[#f3d688]" : ""}`}>
+                  <span className="cinzel font-bold text-gold-bright w-[84px] shrink-0">{st.from === st.to ? st.from : `${st.from}–${st.to}`}</span>
+                  <span className="flex flex-col flex-1 min-w-[200px]">
+                    <span className="font-bold">{st.pet.beast.name} <span className="text-sm font-normal text-[#d9c79a]">· {st.pet.family.name}{st.pet.beast.speed ? ` · ${st.pet.beast.speed.toFixed(1)}s swing` : ""}</span></span>
+                    <span className="text-sm text-muted">{st.pet.beast.minLevel > st.from ? `Tame at ${st.pet.beast.minLevel} · ` : ""}{st.pet.beast.zone}, level {levels(st.pet)}{st.pet.beast.coords ? ` at ${st.pet.beast.coords}` : ""} · {st.pet.reasons.slice(0, 2).join("; ")}</span>
+                    {st.pet.beast.note && <span className="text-sm text-muted">{st.pet.beast.note}</span>}
+                    {st.keep && <span className="text-sm text-[#4fd34f]">Already have {st.keep.beast.name}? Keep it: it has levelled with you and is nearly as good.</span>}
+                  </span>
+                  {mine && <span className="pill good">You are here</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="m-0 text-sm text-muted">Between steps, keep training your pet's ability ranks: open a family below to see which beasts teach each rank up to 60.</p>
       </div>
 
       <div className="frame p-5 flex flex-col gap-3">
@@ -274,7 +301,11 @@ function AbilityTooltip({ family, level }: { family: PetFamily; level: number })
 function FamilyCard({ best, family: fam, place, opts }: { best?: ScoredPet; family?: PetFamily; place?: number; opts: { level: number; spec: Spec; context: Context; faction: "horde" | "alliance" } }) {
   const family = best?.family ?? fam!;
   const [open, setOpen] = useState(false);
-  const all = useMemo(() => (open ? rankWithinFamily(family.id, opts) : []), [open, family.id, opts]);
+  const all = useMemo(() => (open ? allOfFamily(family.id, opts) : { now: [], later: [] }), [open, family.id, opts]);
+  const roadmap = useMemo(
+    () => (open ? familyRoadmap(family.id, { spec: opts.spec, context: opts.context, faction: opts.faction }) : []),
+    [open, family.id, opts.spec, opts.context, opts.faction],
+  );
   const { rank, firstLevel } = abilityRankAt(family, opts.level);
   return (
     <div className="frame p-4 flex flex-col gap-2">
@@ -305,7 +336,33 @@ function FamilyCard({ best, family: fam, place, opts }: { best?: ScoredPet; fami
       <button type="button" className="btn ghost self-start" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {open ? "Hide beasts" : `Compare every ${family.name.toLowerCase()}`}
       </button>
-      {open && <BeastList pets={all} level={opts.level} />}
+      {open && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="lbl mb-1">Best {family.name.toLowerCase()} for each bracket, 10 to 60</div>
+            <table className="w-full text-sm border-collapse">
+              <tbody>
+                {roadmap.map(({ bracket, best: b }) => (
+                  <tr key={bracket.label} className="border-t border-[#3a2c1a] align-top">
+                    <td className="py-1 pr-3 cinzel font-bold whitespace-nowrap">{bracket.label}</td>
+                    <td className="py-1">{b ? <><b>{b.beast.name}</b> <span className="text-muted">· {b.beast.zone}, level {levels(b)}{b.beast.speed ? ` · ${b.beast.speed.toFixed(1)}s` : ""}{b.beast.teaches?.length ? ` · knows ${b.beast.teaches.join(", ")}` : ""}</span></> : <span className="text-muted italic">none recorded, keep the last one</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div className="lbl mb-1">Tameable by level {opts.level}, best first</div>
+            <BeastList pets={all.now} level={opts.level} />
+          </div>
+          {all.later.length > 0 && (
+            <div>
+              <div className="lbl mb-1">Coming later, up to 60</div>
+              <BeastList pets={all.later} level={opts.level} later />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -320,7 +377,7 @@ function beastWhy(p: ScoredPet) {
   return bits.join(" · ");
 }
 
-function BeastList({ pets, level }: { pets: ScoredPet[]; level: number }) {
+function BeastList({ pets, level, later }: { pets: ScoredPet[]; level: number; later?: boolean }) {
   if (!pets.length) return <div className="text-sm italic text-muted">No beasts of this family recorded at or below level {level}.</div>;
   return (
     <ol className="m-0 pl-5 flex flex-col gap-2 text-[15px]">
@@ -329,6 +386,7 @@ function BeastList({ pets, level }: { pets: ScoredPet[]; level: number }) {
         return (
           <li key={p.beast.name}>
             <span className="font-bold">{p.beast.name}</span>
+            {later && <span className="pill ml-1">Tame at {p.beast.minLevel}</span>}
             <span className="text-sm text-muted"> · {p.beast.zone}{side !== "contested" ? ` (${side})` : ""}, level {levels(p)}{p.beast.coords ? ` at ${p.beast.coords}` : ""}</span>
             <div className="text-sm">
               {p.beast.rare && <span className="pill mr-1">Rare</span>}
@@ -336,7 +394,7 @@ function BeastList({ pets, level }: { pets: ScoredPet[]; level: number }) {
               {p.beast.speed && <span className="pill good mr-1">{p.beast.speed.toFixed(1)}s swing</span>}
               {p.beast.teaches?.length ? <span className="text-[#d9c79a]">Knows {p.beast.teaches.join(", ")}. </span> : null}
               {p.beast.confidence === "classic" && <span className="text-muted">Level and zone from Classic. </span>}
-              {p.warnings.filter((w) => !w.includes("unlocks at")).map((w) => <span key={w} className="con-orange">{w}. </span>)}
+              {p.warnings.filter((w) => !w.includes("unlocks at") && !(later && w.includes("levels behind"))).map((w) => <span key={w} className="con-orange">{w}. </span>)}
             </div>
           </li>
         );

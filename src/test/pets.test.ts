@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BEASTS, FAMILY_BY_ID, PET_FAMILIES } from "@/data/pets";
 import {
-  abilityRankAt, abilityStrength, bracketPicks, comingUp, rankPets, rankWithinFamily, scorePet, speedBonus, tameableAt,
+  abilityRankAt, abilityStrength, allOfFamily, bracketPicks, comingUp, petPlan, upToDateRanks, rankPets, rankWithinFamily, scorePet, speedBonus, tameableAt,
 } from "@/lib/pets";
 
 const base = { level: 37, spec: "survival" as const, faction: "alliance" as const };
@@ -79,5 +79,42 @@ describe("pet ranking", () => {
   it("recommends PvP control pets", () => {
     const top = rankPets({ ...base, context: "pvp" })[0];
     expect(["spider", "crocolisk", "bird-of-prey", "bat"]).toContain(top.family.id);
+  });
+});
+
+describe("pets through level 60", () => {
+  const opts = { spec: "survival" as const, faction: "alliance" as const };
+  it("has a pet plan that covers every level from 10 to 60 without gaps", () => {
+    for (const context of ["solo", "dungeon", "raid", "pvp"] as const) {
+      const plan = petPlan({ ...opts, context });
+      expect(plan[0].from).toBe(10);
+      expect(plan[plan.length - 1].to).toBe(60);
+      for (let i = 1; i < plan.length; i++) expect(plan[i].from, context).toBe(plan[i - 1].to + 1);
+    }
+  });
+  it("has beasts for every family in the 40s and 50s except the low-level-only families", () => {
+    for (const f of PET_FAMILIES.filter((x) => !["fox", "core-hound"].includes(x.id))) {
+      expect(BEASTS.some((b) => b.family === f.id && b.maxLevel >= 40), f.name).toBe(true);
+    }
+  });
+  it("gives a level 60 pick in every bracket table", () => {
+    for (const context of ["solo", "dungeon", "raid", "pvp"] as const) {
+      const sixty = bracketPicks({ ...opts, context }).find((p) => p.bracket.from === 60);
+      expect(sixty?.best, context).not.toBeNull();
+    }
+  });
+  it("shows later beasts in a family above your level", () => {
+    const { now, later } = allOfFamily("wolf", { ...opts, level: 37, context: "dungeon" });
+    expect(now.every((p) => p.beast.minLevel <= 37)).toBe(true);
+    expect(later.some((p) => p.beast.name === "Bloodaxe Worg")).toBe(true);
+  });
+  it("prefers a beast that already knows the current top ranks", () => {
+    const wolf = FAMILY_BY_ID.get("wolf")!;
+    expect(upToDateRanks(BEASTS.find((b) => b.name === "Snarler")!, wolf, 42)).toBe(2);
+    expect(upToDateRanks(BEASTS.find((b) => b.name === "Snarler")!, wolf, 56)).toBe(0);
+  });
+  it("plans a wolf for Survival in raids at 60", () => {
+    const plan = petPlan({ ...opts, context: "raid" });
+    expect(plan[plan.length - 1].pet.family.id).toBe("wolf");
   });
 });
