@@ -151,6 +151,13 @@
       "stamina": 119,
       "intellect": 69,
       "spirit": 67,
+      "base": {
+        "strength": 38,
+        "agility": 74,
+        "stamina": 58,
+        "intellect": 42,
+        "spirit": 46
+      },
       "health": 1683,
       "mana": 1770,
       "meleeAp": 382,
