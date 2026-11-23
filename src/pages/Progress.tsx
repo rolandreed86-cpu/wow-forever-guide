@@ -14,7 +14,7 @@ export default function Progress() {
   return (
     <section className="flex flex-col gap-5">
       <PageTitle eyebrow="Progress" title={c ? `${c.name}'s journey` : "Live character tracking"}>
-        Your level, professions, talents and gear, read from Raider.IO and ForeverDB. A daily sync updates this page,
+        Your level, professions, talents and gear, read from Raider.IO, BattlePost and ForeverDB. A daily sync updates this page,
         and the guidance, gear and profession pages follow your real character.
       </PageTitle>
       {c ? <Tracked c={c} history={SYNCED.history} /> : <NotSetUp />}
@@ -57,7 +57,8 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
         </div>
         <div className="text-[#47331a] text-[15px] text-right">
           <div>Synced {fmtWhen(c.syncedAt)}</div>
-          {c.lastSeen && <div>Armory read {fmtWhen(c.lastSeen)}</div>}
+          {c.lastSeen && <div>Last logout {fmtWhen(c.lastSeen)}</div>}
+          {c.gearFrom && c.gearFrom !== c.lastSeen && <div>Gear and talent split as of {fmtWhen(c.gearFrom)}</div>}
           {c.itemLevel !== null && <div>Average item level {c.itemLevel}</div>}
         </div>
       </div>
@@ -112,7 +113,10 @@ function Tracked({ c, history }: { c: SyncedCharacter; history: HistoryPoint[] }
                   <span key={tree} className="pill"><span className="font-bold mr-1">{pts}</span>{tree}</span>
                 ))}
               </div>
-              <span className="text-[15px] text-muted">{talentTotal} points spent at level {c.level}. <a href="#talents">Plan the rest</a></span>
+              {c.spec && c.spec.points > talentTotal && (
+                <span className="text-[15px]">Now {c.spec.points} points spent, mostly in {c.spec.name}. The split by tree below updates on Raider.IO's next read.</span>
+              )}
+              <span className="text-[15px] text-muted">{c.spec && c.spec.points > talentTotal ? "" : `${talentTotal} points spent at level ${c.level}. `} <a href="#talents">Plan the rest</a></span>
             </>
           )}
         </div>

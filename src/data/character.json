@@ -5,10 +5,10 @@
     "className": "Hunter",
     "classId": "hunter",
     "race": "Human",
-    "level": 34,
+    "level": 37,
     "faction": "alliance",
     "guild": null,
-    "itemLevel": 32,
+    "itemLevel": 34,
     "talents": {
       "Beast Mastery": 7,
       "Marksmanship": 10,
@@ -124,7 +124,12 @@
         "quality": "rare"
       }
     ],
-    "lastSeen": "2026-11-22T01:43:33.413Z",
+    "lastSeen": "2026-11-22T18:14:14.124Z",
+    "spec": {
+      "name": "Survival",
+      "points": 28
+    },
+    "gearFrom": "2026-11-22T01:43:33.413Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -133,9 +138,13 @@
       {
         "label": "Raider.IO",
         "url": "https://forever.raider.io/characters/eu/pvp/Kurt%20Barren"
+      },
+      {
+        "label": "BattlePost",
+        "url": "https://battlepost.net/en/eu/armory/kurt-barren"
       }
     ],
-    "syncedAt": "2026-11-22T03:39:54.877Z"
+    "syncedAt": "2026-11-23T10:14:14.124Z"
   },
   "history": [
     {
@@ -146,6 +155,11 @@
     {
       "date": "2026-11-22",
       "level": 34,
+      "professions": {}
+    },
+    {
+      "date": "2026-11-23",
+      "level": 37,
       "professions": {}
     }
   ]

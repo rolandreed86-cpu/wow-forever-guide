@@ -5,6 +5,9 @@
  * Sources, both public and keyless:
  *   Raider.IO   forever.raider.io/api/v1/characters/profile?fields=gear,talents,guild
  *               level, class, race, faction, guild, equipped gear, talent points per tree. Crawled from the Armory.
+ *   BattlePost  battlepost.net/en/{region}/armory/{name-surname}
+ *               level, average item level and main talent tree, read live from the Armory when the page is opened.
+ *               Usually fresher than Raider.IO, which re-reads characters every few days.
  *   ForeverDB   foreverdb.net/armory/{region}/{realm}/{name}
  *               profession skills, from the ForeverDB addon when the player uploads with it.
  */
@@ -38,6 +41,10 @@ export interface SyncedCharacter {
   equipment: SyncedItem[];
   /** When a source last saw the character (ISO). */
   lastSeen: string | null;
+  /** Main talent tree and total points spent, from BattlePost. */
+  spec?: { name: string; points: number } | null;
+  /** When the gear and talent split were read (Raider.IO's last crawl, ISO). */
+  gearFrom?: string | null;
   /** When the professions were last read, if ever (ISO). */
   professionsFrom: string | null;
   /** Links to the character on each source that answered. */
@@ -159,8 +166,46 @@ export function parseForeverDbProfessions(html: string): { professions: Record<s
   return { professions, professionMax };
 }
 
+export function battlePostUrl(region: string, name: string): string {
+  return `https://battlepost.net/en/${region.toLowerCase()}/armory/${name.trim().toLowerCase().replace(/\s+/g, "-")}`;
+}
+
+/** "16h ago", "3d ago", "just now" → milliseconds. */
+function agoMs(text: string): number | null {
+  if (/just now/i.test(text)) return 0;
+  const m = text.match(/(\d+)\s*(m|min|h|d|w)\b/i);
+  if (!m) return null;
+  const unit = { m: 60e3, min: 60e3, h: 3600e3, d: 86400e3, w: 604800e3 }[m[2].toLowerCase() as "m"];
+  return Number(m[1]) * unit;
+}
+
+/** Level, item level, main tree and last logout from a BattlePost character page. */
+export function parseBattlePost(html: string, now = new Date()) {
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "")
+    .split(/<[^>]+>/).map((x) => decode(x)).filter(Boolean);
+  const head = text.find((t) => /^Lv \d+ /.test(t));
+  if (!head) return null;
+  const level = Number(head.match(/^Lv (\d+)/)![1]);
+  const ilvlIdx = text.indexOf("Avg iLvl");
+  const ilvl = ilvlIdx > 0 ? Number(text[ilvlIdx - 1]) : NaN;
+  const specIdx = text.indexOf("Spec");
+  const specName = specIdx >= 0 ? text[specIdx + 1] : null;
+  const pts = specIdx >= 0 ? text[specIdx + 2]?.match(/^(\d+) pts$/) : null;
+  const seenIdx = text.indexOf("Last seen");
+  const ago = seenIdx >= 0 ? agoMs(text[seenIdx + 1] ?? "") : null;
+  return {
+    level,
+    itemLevel: Number.isFinite(ilvl) && ilvl > 0 ? ilvl : null,
+    spec: specName && pts ? { name: specName, points: Number(pts[1]) } : null,
+    lastSeen: ago === null ? null : new Date(now.getTime() - ago).toISOString(),
+  };
+}
+
 export interface SyncInputs {
   raiderIo: Json;
+  /** BattlePost character page, if it answered. */
+  battlePost?: { html: string; url: string } | null;
   /** ForeverDB character page, if it was found. */
   foreverDb?: { html: string; url: string } | null;
   region: string;
@@ -169,10 +214,14 @@ export interface SyncInputs {
   now?: Date;
 }
 
-export function buildCharacter({ raiderIo, foreverDb, region, previous, now = new Date() }: SyncInputs): SyncedCharacter {
+export function buildCharacter({ raiderIo, battlePost, foreverDb, region, previous, now = new Date() }: SyncInputs): SyncedCharacter {
   const r = parseRaiderIo(raiderIo);
   const links: { label: string; url: string }[] = [];
   if (r.url) links.push({ label: "Raider.IO", url: r.url });
+  // BattlePost reads the Armory when asked, so when it's at least as far along it wins for level and item level.
+  const bp = battlePost ? parseBattlePost(battlePost.html, now) : null;
+  const live = bp && bp.level >= r.level ? bp : null;
+  if (bp && battlePost) links.push({ label: "BattlePost", url: battlePost.url });
   const prof = foreverDb ? parseForeverDbProfessions(foreverDb.html) : { professions: {}, professionMax: {} };
   const haveProfs = Object.keys(prof.professions).length > 0;
   if (foreverDb) links.push({ label: "ForeverDB", url: foreverDb.url });
@@ -180,6 +229,11 @@ export function buildCharacter({ raiderIo, foreverDb, region, previous, now = ne
   void _url;
   return {
     ...rest,
+    level: live?.level ?? r.level,
+    itemLevel: live?.itemLevel ?? r.itemLevel,
+    lastSeen: live?.lastSeen ?? r.lastSeen,
+    spec: live?.spec ?? null,
+    gearFrom: r.lastSeen,
     region: region.toUpperCase(),
     professions: haveProfs ? prof.professions : previous?.professions ?? {},
     professionMax: haveProfs ? prof.professionMax : previous?.professionMax ?? {},
@@ -192,8 +246,8 @@ export function buildCharacter({ raiderIo, foreverDb, region, previous, now = ne
 /** The parts that count as a change; timestamps alone don't. */
 export function fingerprint(c: SyncedCharacter | null): string {
   if (!c) return "";
-  const { syncedAt: _a, lastSeen: _b, professionsFrom: _c, ...rest } = c;
-  void _a; void _b; void _c;
+  const { syncedAt: _a, lastSeen: _b, professionsFrom: _c, gearFrom: _d, ...rest } = c;
+  void _a; void _b; void _c; void _d;
   return JSON.stringify(rest);
 }
 

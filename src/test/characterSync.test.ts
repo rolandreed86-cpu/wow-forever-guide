@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  appendHistory, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
+  appendHistory, battlePostUrl, buildCharacter, parseBattlePost, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
   parseRaiderIo, pickForeverDbLink, raiderIoUrl, type SyncedCharacter,
 } from "@/lib/characterSync";
 import { applySync, DEFAULT_CHARACTER } from "@/lib/character";
@@ -127,5 +127,35 @@ describe("applying a sync to the app's character", () => {
 
   it("does nothing without a sync", () => {
     expect(applySync(DEFAULT_CHARACTER, null)).toBe(DEFAULT_CHARACTER);
+  });
+});
+
+// Trimmed from a real battlepost.net character page.
+const bpPage = `<h1>Kurt Barren</h1><span>37</span><div>Kurt Barren</div><div>Lv 37 Human</div><div>Survival Hunter</div>
+<div>Checked just now</div><div>· last seen 16h ago</div><b>34</b><span>Avg iLvl</span><b>0</b><span>Achievements</span>
+<dt>Class</dt><dd>Hunter</dd><dt>Spec</dt><dd>Survival</dd><dd>28 pts</dd><dt>Realm type</dt><dd>PvP</dd>
+<dt>Last seen</dt><dd>16h ago</dd><dt>Updated</dt><dd>just now</dd><script>var x = "<div>Lv 99 Fake</div>";</script>`;
+
+describe("BattlePost page", () => {
+  const now = new Date("2026-11-23T10:00:00Z");
+
+  it("reads level, item level, main tree and last logout", () => {
+    expect(parseBattlePost(bpPage, now)).toEqual({
+      level: 37, itemLevel: 34, spec: { name: "Survival", points: 28 }, lastSeen: "2026-11-22T18:00:00.000Z",
+    });
+    expect(parseBattlePost("<p>Not found</p>")).toBeNull();
+    expect(battlePostUrl("EU", "Kurt Barren")).toBe("https://battlepost.net/en/eu/armory/kurt-barren");
+  });
+
+  it("wins over a staler Raider.IO level but keeps Raider.IO's gear", () => {
+    const c = buildCharacter({ raiderIo: rio, battlePost: { html: bpPage, url: "bp" }, region: "eu", now });
+    expect(c).toMatchObject({ level: 37, itemLevel: 34, spec: { name: "Survival", points: 28 }, gearFrom: rio.last_crawled_at });
+    expect(c.equipment).toHaveLength(2);
+    expect(c.links.map((l) => l.label)).toContain("BattlePost");
+  });
+
+  it("is ignored when it's behind Raider.IO", () => {
+    const c = buildCharacter({ raiderIo: { ...rio, level: 40 }, battlePost: { html: bpPage, url: "bp" }, region: "eu", now });
+    expect(c.level).toBe(40);
   });
 });
