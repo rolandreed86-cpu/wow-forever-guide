@@ -5,26 +5,32 @@
     "className": "Hunter",
     "classId": "hunter",
     "race": "Human",
-    "level": 32,
+    "level": 34,
     "faction": "alliance",
     "guild": null,
-    "itemLevel": 26,
+    "itemLevel": 32,
     "talents": {
-      "Beast Mastery": 1,
+      "Beast Mastery": 7,
       "Marksmanship": 10,
-      "Survival": 7
+      "Survival": 8
     },
     "equipment": [
       {
         "slot": "Head",
-        "id": 273645,
-        "name": "Blindwatcher's Sight",
-        "quality": "rare"
+        "id": 6422,
+        "name": "Glyphed Helm",
+        "quality": "uncommon"
+      },
+      {
+        "slot": "Neck",
+        "id": 12040,
+        "name": "Forest Pendant",
+        "quality": "uncommon"
       },
       {
         "slot": "Shoulder",
-        "id": 5254,
-        "name": "Rugged Spaulders",
+        "id": 273804,
+        "name": "Executioner Mantle",
         "quality": "rare"
       },
       {
@@ -59,21 +65,21 @@
       },
       {
         "slot": "Hands",
-        "id": 273824,
-        "name": "Defias Jailbreakers",
+        "id": 7756,
+        "name": "Dog Training Gloves",
         "quality": "rare"
       },
       {
         "slot": "Legs",
-        "id": 10400,
-        "name": "Blackened Defias Leggings",
+        "id": 9624,
+        "name": "Triprunner Dungarees",
         "quality": "rare"
       },
       {
         "slot": "Feet",
-        "id": 10402,
-        "name": "Blackened Defias Boots",
-        "quality": "rare"
+        "id": 4055,
+        "name": "Insignia Boots",
+        "quality": "uncommon"
       },
       {
         "slot": "Finger",
@@ -83,8 +89,8 @@
       },
       {
         "slot": "Finger",
-        "id": 6743,
-        "name": "Sustaining Ring",
+        "id": 6748,
+        "name": "Monkey Ring",
         "quality": "uncommon"
       },
       {
@@ -101,9 +107,9 @@
       },
       {
         "slot": "Main hand",
-        "id": 3186,
-        "name": "Viking Sword",
-        "quality": "uncommon"
+        "id": 7683,
+        "name": "Bloody Brass Knuckles",
+        "quality": "rare"
       },
       {
         "slot": "Ranged",
@@ -113,12 +119,12 @@
       },
       {
         "slot": "Off hand",
-        "id": 2941,
-        "name": "Prison Shank",
+        "id": 7683,
+        "name": "Bloody Brass Knuckles",
         "quality": "rare"
       }
     ],
-    "lastSeen": "2026-11-14T12:03:08.704Z",
+    "lastSeen": "2026-11-22T01:43:33.413Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -129,12 +135,17 @@
         "url": "https://forever.raider.io/characters/eu/pvp/Kurt%20Barren"
       }
     ],
-    "syncedAt": "2026-11-21T05:49:53.934Z"
+    "syncedAt": "2026-11-22T03:39:54.877Z"
   },
   "history": [
     {
       "date": "2026-11-21",
       "level": 32,
+      "professions": {}
+    },
+    {
+      "date": "2026-11-22",
+      "level": 34,
       "professions": {}
     }
   ]
