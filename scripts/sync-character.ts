@@ -3,7 +3,8 @@
  *
  *   npm run sync:character
  *
- *   Raider.IO  level, class, faction, guild, gear and talent points (crawled from the Armory)
+ *   Raider.IO  class, faction, guild, gear and talent points (crawled from the Armory every few days)
+ *   BattlePost level, item level and main talent tree, read live from the Armory (optional)
  *   ForeverDB  profession skills, when you upload with the ForeverDB addon (optional)
  *
  * The character comes from sync.config.json: region (eu or us), realm (the ruleset: normal, pvp, rp or pvp-rp)
@@ -12,7 +13,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import {
-  appendHistory, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
+  appendHistory, battlePostUrl, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
   pickForeverDbLink, raiderIoUrl, type CharacterFile,
 } from "../src/lib/characterSync.ts";
 
@@ -52,6 +53,17 @@ if (rio.status !== 200) {
 }
 const raiderIo = JSON.parse(rio.body);
 
+// BattlePost: optional, the freshest level.
+let battlePost: { html: string; url: string } | null = null;
+try {
+  const url = battlePostUrl(region, name);
+  const page = await getText(url, 2);
+  if (page.status === 200) battlePost = { html: page.body, url };
+  else console.warn(`BattlePost answered ${page.status}, using Raider.IO's level.`);
+} catch (e) {
+  console.warn(`BattlePost unavailable, using Raider.IO's level (${(e as Error).message})`);
+}
+
 // ForeverDB: optional, for professions.
 let foreverDb: { html: string; url: string } | null = null;
 try {
@@ -69,7 +81,7 @@ if (!foreverDb) console.warn("ForeverDB has no page for this character yet, so p
 else if (!Object.keys(parseForeverDbProfessions(foreverDb.html).professions).length) console.warn("ForeverDB lists the character but no professions.");
 
 const file = JSON.parse(readFileSync(OUT, "utf8")) as CharacterFile;
-const next = buildCharacter({ raiderIo, foreverDb, region, previous: file.character });
+const next = buildCharacter({ raiderIo, battlePost, foreverDb, region, previous: file.character });
 
 if (fingerprint(file.character) === fingerprint(next)) {
   console.log(`No changes: ${next.name} is still level ${next.level}.`);

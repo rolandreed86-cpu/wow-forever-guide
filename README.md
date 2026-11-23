@@ -37,6 +37,7 @@ Blizzard's official API doesn't yet expose trainer spells or dungeon loot for Fo
 The Progress page and the header follow your real character. No API keys are needed:
 
 - **[Raider.IO](https://forever.raider.io/api)** (public API, crawled from the Armory): level, class, race, faction, guild, equipped gear, item level and talent points per tree.
+- **[BattlePost](https://battlepost.net/en/armory)** (public character pages, read live from the Armory): level, average item level and main talent tree. Raider.IO only re-reads characters every few days, so BattlePost's level wins when it's further along.
 - **[ForeverDB](https://foreverdb.net/armory)** (public character pages): profession skills, uploaded by the ForeverDB in-game addon. Optional: without it, professions keep their last value.
 
 1. Put your character in `sync.config.json`: `"character": "Name Surname"`, `"region": "eu"` or `"us"`, and `"realm"` as the ruleset (`normal`, `pvp`, `rp` or `pvp-rp`).
