@@ -6,6 +6,10 @@ import {
 } from "@/lib/talents";
 import { analyzeBuild, type BuildAnalysis, type SuggestionKind } from "@/lib/buildAnalysis";
 import { TALENT_NOTES, buildAtPoints, type RecommendedBuild } from "@/data/talentBuilds";
+import { NO_PET, buildDps, defaultPet, petAdvice, petChoice, type PlaystyleChoice } from "@/components/PetDps";
+import { PLAYSTYLE_LABEL } from "@/lib/dps";
+import type { Faction } from "@/data/classes";
+import { SYNCED } from "@/lib/character";
 
 export interface SavedBuild {
   id: string;
@@ -14,6 +18,9 @@ export interface SavedBuild {
   code: string;
   level: number;
   legacy: number;
+  /** Beast name (or family id), or "none". Missing on builds saved before pets were added. */
+  pet?: string;
+  playstyle?: PlaystyleChoice;
   savedAt: string;
 }
 
@@ -46,8 +53,8 @@ export function useSavedBuilds(cls: string) {
 
 type Saved = ReturnType<typeof useSavedBuilds>;
 
-export function MyBuilds({ data, alloc, level, legacy, saved, activeId, setActiveId, onLoad, selected, toggle }: {
-  data: TalentClass; alloc: Allocation; level: number; legacy: number; saved: Saved;
+export function MyBuilds({ data, alloc, level, legacy, pet, playstyle, saved, activeId, setActiveId, onLoad, selected, toggle }: {
+  data: TalentClass; alloc: Allocation; level: number; legacy: number; pet: string; playstyle: PlaystyleChoice; saved: Saved;
   activeId: string | null; setActiveId: (id: string | null) => void;
   onLoad: (b: SavedBuild, a: Allocation) => void; selected: Set<string>; toggle: (key: string) => void;
 }) {
@@ -58,11 +65,13 @@ export function MyBuilds({ data, alloc, level, legacy, saved, activeId, setActiv
   const spent = totalSpent(data, alloc);
   const code = encodeBuild(data, alloc);
   const active = saved.list.find((b) => b.id === activeId) ?? null;
-  const changed = active ? active.code !== code || active.level !== level || active.legacy !== legacy : false;
+  const changed = active
+    ? active.code !== code || active.level !== level || active.legacy !== legacy || (active.pet ?? pet) !== pet || (active.playstyle ?? "auto") !== playstyle
+    : false;
 
   const saveNew = () => {
     const n = name.trim() || `Build ${saved.list.length + 1}`;
-    const id = saved.add({ name: n, code, level, legacy });
+    const id = saved.add({ name: n, code, level, legacy, pet, playstyle });
     setActiveId(id);
     toggle(`s:${id}`);
     setName("");
@@ -84,7 +93,7 @@ export function MyBuilds({ data, alloc, level, legacy, saved, activeId, setActiv
         <input id="build-name" className="field flex-1 min-w-[12rem]" maxLength={60} placeholder={`Name this build, e.g. "Raid weave" or "PvP traps"`} value={name} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="btn" disabled={spent === 0}>Save as new build</button>
         {active && changed && (
-          <button type="button" className="btn ghost" onClick={() => saved.update(active.id, { code, level, legacy })}>Update “{active.name}”</button>
+          <button type="button" className="btn ghost" onClick={() => saved.update(active.id, { code, level, legacy, pet, playstyle })}>Update “{active.name}”</button>
         )}
       </form>
 
@@ -111,7 +120,7 @@ export function MyBuilds({ data, alloc, level, legacy, saved, activeId, setActiv
                   ) : (
                     <>
                       <div className="font-bold text-[#ffd23f]">{b.name}{b.id === activeId && <span className="pill ml-2">In the builder{changed ? ", edited" : ""}</span>}</div>
-                      <div className="text-sm text-muted">{split} · level {b.level}{b.legacy ? ` +${b.legacy} Legacy` : ""} · saved {new Date(b.savedAt).toLocaleDateString()}</div>
+                      <div className="text-sm text-muted">{split} · level {b.level}{b.legacy ? ` +${b.legacy} Legacy` : ""}{b.pet ? ` · ${petLabel(b.pet)}` : ""} · saved {new Date(b.savedAt).toLocaleDateString()}</div>
                     </>
                   )}
                 </div>
@@ -133,8 +142,14 @@ export function MyBuilds({ data, alloc, level, legacy, saved, activeId, setActiv
   );
 }
 
+const petLabel = (p: string | undefined) => (!p || p === NO_PET ? "no pet" : petChoice(p)?.beast?.name ?? petChoice(p)?.family.name ?? p);
+
 interface Column {
   key: string;
+  pet: string;
+  style: PlaystyleChoice;
+  dps: ReturnType<typeof buildDps>;
+  petTips: string[];
   name: string;
   sub: string;
   alloc: Allocation;
@@ -150,8 +165,9 @@ const KIND_STYLE: Record<SuggestionKind, { label: string; cls: string }> = {
   good: { label: "Good", cls: "good" },
 };
 
-export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, selected, toggle }: {
-  data: TalentClass; alloc: Allocation; level: number; legacy: number; saved: SavedBuild[];
+export function CompareBuilds({ data, alloc, level, legacy, pet, playstyle, faction, charLevel, saved, recommended, selected, toggle }: {
+  data: TalentClass; alloc: Allocation; level: number; legacy: number; pet: string; playstyle: PlaystyleChoice;
+  faction: Faction; charLevel: number; saved: SavedBuild[];
   recommended: RecommendedBuild[]; selected: Set<string>; toggle: (key: string) => void;
 }) {
   const notes = TALENT_NOTES[data.class] ?? {};
@@ -159,24 +175,41 @@ export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, 
 
   const columns: Column[] = useMemo(() => {
     const cols: Column[] = [];
-    const push = (key: string, name: string, sub: string, a: Allocation, b: number, rec: boolean) =>
-      cols.push({ key, name, sub, alloc: a, budget: b, recommended: rec, analysis: analyzeBuild(data, a, b, recommended, notes) });
+    const push = (key: string, name: string, sub: string, a: Allocation, b: number, rec: boolean, p: string, st: PlaystyleChoice) =>
+      cols.push({
+        key, name, sub, alloc: a, budget: b, recommended: rec, pet: p, style: st,
+        analysis: analyzeBuild(data, a, b, recommended, notes),
+        dps: buildDps(data, a, p, st),
+        petTips: rec ? [] : petAdvice(data, a, p, st, charLevel, faction),
+      });
     // The builder's build gets its own column unless it is exactly one of the ticked saved builds.
     const code = encodeBuild(data, alloc);
-    const same = saved.find((s) => selected.has(`s:${s.id}`) && s.code === code && s.level === level && s.legacy === legacy);
-    if (!same) push("current", "In the builder now", `level ${level}`, alloc, budget, false);
+    const same = saved.find((s) => selected.has(`s:${s.id}`) && s.code === code && s.level === level && s.legacy === legacy
+      && (s.pet ?? pet) === pet && (s.playstyle ?? "auto") === playstyle);
+    if (!same) push("current", "In the builder now", `level ${level}`, alloc, budget, false, pet, playstyle);
     for (const s of saved) {
       if (!selected.has(`s:${s.id}`)) continue;
       const a = decodeBuild(data, s.code);
       const b = pointsAvailable(s.level, s.legacy);
-      if (a && isValid(data, a, pointsAvailable(60, MAX_LEGACY_BONUS))) push(`s:${s.id}`, s.name, `saved, level ${s.level}${s === same ? " · in the builder" : ""}`, a, b, false);
+      if (a && isValid(data, a, pointsAvailable(60, MAX_LEGACY_BONUS))) {
+        push(`s:${s.id}`, s.name, `saved, level ${s.level}${s === same ? " · in the builder" : ""}`, a, b, false,
+          s.pet ?? defaultPet(data, a, charLevel, faction), s.playstyle ?? "auto");
+      }
+    }
+    const live = SYNCED.character;
+    if (selected.has("k:now") && live?.talentRanks && live.classId === data.class) {
+      const a = allocFromNames(data, live.talentRanks).alloc;
+      push("k:now", `${live.name.split(" ")[0]}'s talents now`, `from the Armory, level ${live.level}`, a, pointsAvailable(live.level), false,
+        defaultPet(data, a, charLevel, faction), "auto");
     }
     for (const r of recommended) {
       if (!selected.has(`r:${r.id}`)) continue;
-      push(`r:${r.id}`, r.name, `recommended, level ${level}`, allocFromNames(data, buildAtPoints(r, budget)).alloc, budget, true);
+      const a = allocFromNames(data, buildAtPoints(r, budget)).alloc;
+      push(`r:${r.id}`, r.name, `recommended, level ${level}`, a, budget, true, defaultPet(data, a, charLevel, faction), "auto");
     }
     return cols;
-  }, [data, alloc, level, legacy, budget, saved, recommended, selected, notes]);
+  }, [data, alloc, level, legacy, budget, saved, recommended, selected, notes, pet, playstyle, charLevel, faction]);
+  const anyDps = columns.some((c) => c.dps);
 
   // Talents where the compared builds disagree, in tree order.
   const differing = data.trees.flatMap((tree) =>
@@ -199,6 +232,11 @@ export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, 
 
       {recommended.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Recommended builds to compare">
+          {SYNCED.character?.talentRanks && SYNCED.character.classId === data.class && (
+            <button type="button" aria-pressed={selected.has("k:now")} className={`pill min-h-[36px] cursor-pointer ${selected.has("k:now") ? "good" : ""}`} onClick={() => toggle("k:now")}>
+              {selected.has("k:now") ? "✓ " : "+ "}{SYNCED.character.name.split(" ")[0]}'s talents now
+            </button>
+          )}
           {recommended.map((r) => {
             const on = selected.has(`r:${r.id}`);
             return (
@@ -230,8 +268,12 @@ export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, 
             <Row label="Damage points" cols={columns} get={(c) => `${c.analysis.damagePoints} (${c.analysis.points ? Math.round((c.analysis.damagePoints / c.analysis.points) * 100) : 0}%)`} />
             <Row label="Closest recommended" cols={columns} get={(c) => (c.recommended ? "—" : c.analysis.closest?.build.name ?? "—")} />
             <Row label="Same as recommended" cols={columns} get={(c) => (c.recommended ? "—" : c.analysis.closest ? `${Math.round(c.analysis.closest.match * 100)}%` : "—")} />
+            <Row label="Pet" cols={columns} get={(c) => petLabel(c.pet)} />
+            {anyDps && <Row label="Playstyle" cols={columns} get={(c) => (c.dps ? PLAYSTYLE_LABEL[c.dps.playstyle] : "—")} />}
+            {anyDps && <Row label="Estimated DPS (your gear)" cols={columns} strong get={(c) => (c.dps ? `${Math.round(c.dps.total)}` : "—")} />}
+            {anyDps && <Row label="Pet and hawks share" cols={columns} get={(c) => (c.dps ? `${Math.round(c.dps.pet)} (${Math.round(c.dps.petShare * 100)}%)` : "—")} />}
             <Row label="Suggestions" cols={columns} get={(c) => {
-              const n = c.analysis.suggestions.filter((s) => s.kind === "warn" || s.kind === "improve").length;
+              const n = c.analysis.suggestions.filter((s) => s.kind === "warn" || s.kind === "improve").length + c.petTips.length;
               return n === 0 ? "None" : `${n} to look at`;
             }} />
             {shown.length > 0 && (
@@ -260,6 +302,12 @@ export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, 
             <div className="lbl">Suggestions</div>
             <h3 className="heading text-lg m-0 text-[#3b2a14]">{c.name} <span className="text-sm font-normal">({c.analysis.split.join("/")})</span></h3>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {c.petTips.map((t) => (
+                <li key={t} className="flex gap-2 items-start">
+                  <span className="pill shrink-0">Improve</span>
+                  <span>{t}</span>
+                </li>
+              ))}
               {c.analysis.suggestions.map((s, i) => (
                 <li key={i} className="flex gap-2 items-start">
                   <span className={`pill ${KIND_STYLE[s.kind].cls} shrink-0`}>{KIND_STYLE[s.kind].label}</span>
@@ -274,11 +322,11 @@ export function CompareBuilds({ data, alloc, level, legacy, saved, recommended, 
   );
 }
 
-function Row({ label, cols, get }: { label: string; cols: Column[]; get: (c: Column) => string }) {
+function Row({ label, cols, get, strong }: { label: string; cols: Column[]; get: (c: Column) => string; strong?: boolean }) {
   return (
     <tr className="border-t border-[#3a2c1a]">
       <th scope="row" className="text-left p-2 text-muted font-normal">{label}</th>
-      {cols.map((c) => <td key={c.key} className="p-2 text-[#e8d5a4]">{get(c)}</td>)}
+      {cols.map((c) => <td key={c.key} className={`p-2 ${strong ? "text-gold-bright font-bold text-base" : "text-[#e8d5a4]"}`}>{get(c)}</td>)}
     </tr>
   );
 }

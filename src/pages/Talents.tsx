@@ -12,11 +12,14 @@ import {
 } from "@/data/talentBuilds";
 import { Loading, LoadError, PageTitle } from "@/components/States";
 import { CompareBuilds, MyBuilds, useSavedBuilds } from "@/components/TalentBuilds";
+import { NO_PET, PetAndDps, defaultPet, type PlaystyleChoice } from "@/components/PetDps";
 
 const STORE = "wa:talents:";
 const PRESET_STORE = "wa:talent-preset:";
 const ACTIVE_STORE = "wa:talent-active:";
 const COMPARE_STORE = "wa:talent-compare:";
+const PET_STORE = "wa:talent-pet:";
+const STYLE_STORE = "wa:talent-style:";
 function load<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
 }
@@ -109,6 +112,12 @@ function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
   const [notice, setNotice] = useState<string | null>(null);
   const preset = builds.find((b) => b.id === presetId) ?? null;
   const saved = useSavedBuilds(data.class);
+  const { character } = useCharacter();
+  const charLevel = SYNCED.character?.level ?? character.level;
+  const [pet, setPet] = useState<string>(() => load<string | null>(PET_STORE + data.class, null) ?? defaultPet(data, alloc, charLevel, character.faction));
+  const [style, setStyle] = useState<PlaystyleChoice>(() => load<PlaystyleChoice>(STYLE_STORE + data.class, "auto"));
+  useEffect(() => save(PET_STORE + data.class, pet), [pet, data.class]);
+  useEffect(() => save(STYLE_STORE + data.class, style), [style, data.class]);
   const [activeId, setActiveId] = useState<string | null>(() => load<string | null>(ACTIVE_STORE + data.class, null));
   const [selected, setSelected] = useState<Set<string>>(() => new Set(load<string[]>(COMPARE_STORE + data.class, builds.filter((b) => b.recommended).map((b) => `r:${b.id}`))));
   const toggle = (key: string) => setSelected((cur) => { const n = new Set(cur); if (n.has(key)) n.delete(key); else n.add(key); return n; });
@@ -202,12 +211,21 @@ function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
         ))}
       </div>
 
-      <MyBuilds data={data} alloc={alloc} level={level} legacy={legacy} saved={saved} activeId={activeId} setActiveId={setActiveId}
-        selected={selected} toggle={toggle}
-        onLoad={(b, a) => { setLevel(b.level); setLegacy(b.legacy); setAlloc(a); setActiveId(b.id); setNotice(`Loaded “${b.name}”.`); }} />
+      {data.class === "hunter" && (
+        <PetAndDps cls={data} alloc={alloc} level={level} faction={character.faction} pet={pet} setPet={setPet} style={style} setStyle={setStyle} />
+      )}
 
-      <CompareBuilds data={data} alloc={alloc} level={level} legacy={legacy} saved={saved.list} recommended={builds}
-        selected={selected} toggle={toggle} />
+      <MyBuilds data={data} alloc={alloc} level={level} legacy={legacy} pet={data.class === "hunter" ? pet : NO_PET} playstyle={style}
+        saved={saved} activeId={activeId} setActiveId={setActiveId} selected={selected} toggle={toggle}
+        onLoad={(b, a) => {
+          setLevel(b.level); setLegacy(b.legacy); setAlloc(a); setActiveId(b.id);
+          if (b.pet) setPet(b.pet);
+          setStyle(b.playstyle ?? "auto");
+          setNotice(`Loaded “${b.name}”.`);
+        }} />
+
+      <CompareBuilds data={data} alloc={alloc} level={level} legacy={legacy} pet={data.class === "hunter" ? pet : NO_PET} playstyle={style}
+        faction={character.faction} charLevel={charLevel} saved={saved.list} recommended={builds} selected={selected} toggle={toggle} />
 
       {hover && (
         <FloatingTooltip rect={hover.rect} onClose={() => setHover(null)} pinned={hover.pinned}>

@@ -12,7 +12,7 @@
     "talents": {
       "Beast Mastery": 7,
       "Marksmanship": 10,
-      "Survival": 8
+      "Survival": 11
     },
     "equipment": [
       {
@@ -24,31 +24,25 @@
       {
         "slot": "Neck",
         "id": 12040,
-        "name": "Forest Pendant",
+        "name": "Forest Pendant of Eluding",
         "quality": "uncommon"
       },
       {
         "slot": "Shoulder",
-        "id": 273804,
-        "name": "Executioner Mantle",
+        "id": 279879,
+        "name": "Rune-Etched Epaulets",
         "quality": "rare"
       },
       {
         "slot": "Back",
-        "id": 271716,
-        "name": "Explorer's League Dustcover",
+        "id": 274612,
+        "name": "Waterlogged Burial Shroud",
         "quality": "rare"
       },
       {
         "slot": "Chest",
         "id": 273026,
         "name": "Garb of Florid Feathers",
-        "quality": "rare"
-      },
-      {
-        "slot": "Waist",
-        "id": 273041,
-        "name": "Slitherwrap Girdle",
         "quality": "rare"
       },
       {
@@ -67,6 +61,12 @@
         "slot": "Hands",
         "id": 7756,
         "name": "Dog Training Gloves",
+        "quality": "rare"
+      },
+      {
+        "slot": "Waist",
+        "id": 273041,
+        "name": "Slitherwrap Girdle",
         "quality": "rare"
       },
       {
@@ -107,29 +107,102 @@
       },
       {
         "slot": "Main hand",
-        "id": 7683,
-        "name": "Bloody Brass Knuckles",
-        "quality": "rare"
-      },
-      {
-        "slot": "Ranged",
-        "id": 273029,
-        "name": "Golemsight Long Gun",
+        "id": 274598,
+        "name": "Bloodslash Axe",
         "quality": "rare"
       },
       {
         "slot": "Off hand",
-        "id": 7683,
-        "name": "Bloody Brass Knuckles",
+        "id": 6829,
+        "name": "Sword of Serenity",
         "quality": "rare"
+      },
+      {
+        "slot": "Ranged",
+        "id": 274604,
+        "name": "Frosty Blunderbuss",
+        "quality": "rare"
+      },
+      {
+        "slot": "Ammo",
+        "id": 3033,
+        "name": "Solid Shot",
+        "quality": "common"
       }
     ],
-    "lastSeen": "2026-11-22T18:14:14.124Z",
+    "lastSeen": "2026-11-22T18:35:53.544Z",
     "spec": {
       "name": "Survival",
       "points": 28
     },
-    "gearFrom": "2026-11-22T01:43:33.413Z",
+    "talentRanks": {
+      "Deadly Aspects": 5,
+      "Focused Fire": 2,
+      "Lethal Attacks": 5,
+      "Careful Aim": 5,
+      "Improved Tracking": 5,
+      "Savage Strikes": 2,
+      "Survivalist": 3,
+      "Surefooted": 1
+    },
+    "sheet": {
+      "strength": 46,
+      "agility": 145,
+      "stamina": 119,
+      "intellect": 69,
+      "spirit": 67,
+      "health": 1683,
+      "mana": 1770,
+      "meleeAp": 382,
+      "mainHand": {
+        "min": 114,
+        "max": 155,
+        "speed": 2.5
+      },
+      "offHand": {
+        "min": 53,
+        "max": 73,
+        "speed": 2.2
+      },
+      "meleeCrit": 7.58,
+      "meleeHit": 1,
+      "rangedAp": 481,
+      "ranged": {
+        "min": 159,
+        "max": 196,
+        "speed": null
+      },
+      "rangedCrit": 11.06,
+      "rangedHit": 1,
+      "rangedHaste": 10,
+      "armor": 1007,
+      "dodge": 10.36,
+      "parry": 4.76
+    },
+    "weapons": {
+      "mainHand": {
+        "id": 274598,
+        "name": "Bloodslash Axe",
+        "min": 46,
+        "max": 87,
+        "speed": 2.5
+      },
+      "offHand": {
+        "id": 6829,
+        "name": "Sword of Serenity",
+        "min": 46,
+        "max": 86,
+        "speed": 2.2
+      },
+      "ranged": {
+        "id": 274604,
+        "name": "Frosty Blunderbuss",
+        "min": 41,
+        "max": 78,
+        "speed": 2.8
+      }
+    },
+    "gearFrom": "2026-11-22T18:35:53.544Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -144,7 +217,7 @@
         "url": "https://battlepost.net/en/eu/armory/kurt-barren"
       }
     ],
-    "syncedAt": "2026-11-23T10:14:14.124Z"
+    "syncedAt": "2026-11-23T11:35:53.544Z"
   },
   "history": [
     {

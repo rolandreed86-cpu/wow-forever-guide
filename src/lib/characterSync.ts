@@ -21,6 +21,47 @@ export interface SyncedItem {
   quality: string;
 }
 
+/** A weapon's own damage range and swing time (from its item tooltip, before attack power). */
+export interface WeaponInfo {
+  id: number;
+  name: string;
+  min: number;
+  max: number;
+  speed: number;
+}
+
+export interface SheetWeapon {
+  /** Damage per swing or shot as the character sheet shows it, attack power included. */
+  min: number;
+  max: number;
+  speed: number | null;
+}
+
+/** The character sheet as BattlePost shows it: at last logout, with gear and buffs, talents included. */
+export interface CharacterSheet {
+  strength: number;
+  agility: number;
+  stamina: number;
+  intellect: number;
+  spirit: number;
+  health: number | null;
+  mana: number | null;
+  meleeAp: number;
+  mainHand: SheetWeapon | null;
+  offHand: SheetWeapon | null;
+  meleeCrit: number;
+  meleeHit: number;
+  rangedAp: number;
+  ranged: SheetWeapon | null;
+  rangedCrit: number;
+  rangedHit: number;
+  /** Ranged attack speed bonus, in percent (quiver, ammo pouch). */
+  rangedHaste: number;
+  armor: number | null;
+  dodge: number | null;
+  parry: number | null;
+}
+
 export interface SyncedCharacter {
   name: string;
   region: string;
@@ -43,7 +84,13 @@ export interface SyncedCharacter {
   lastSeen: string | null;
   /** Main talent tree and total points spent, from BattlePost. */
   spec?: { name: string; points: number } | null;
-  /** When the gear and talent split were read (Raider.IO's last crawl, ISO). */
+  /** Character sheet stats from BattlePost, when it is the live source. */
+  sheet?: CharacterSheet | null;
+  /** Talent name → rank, from BattlePost. */
+  talentRanks?: Record<string, number> | null;
+  /** Equipped weapons' own damage and speed, from their item tooltips. */
+  weapons?: { mainHand?: WeaponInfo; offHand?: WeaponInfo; ranged?: WeaponInfo } | null;
+  /** When the gear and talent split were read (Raider.IO's last crawl, or BattlePost when it is live; ISO). */
   gearFrom?: string | null;
   /** When the professions were last read, if ever (ISO). */
   professionsFrom: string | null;
@@ -135,7 +182,7 @@ export function parseRaiderIo(json: Json) {
 }
 
 const decode = (s: string) =>
-  s.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+  s.replace(/&#x27;|&#0*39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
 
 /** Character page links on a ForeverDB armory search page, e.g. "/armory/eu/pve/Name". */
 export function foreverDbLinks(html: string): string[] {
@@ -180,10 +227,14 @@ function agoMs(text: string): number | null {
 }
 
 /** Level, item level, main tree and last logout from a BattlePost character page. */
-export function parseBattlePost(html: string, now = new Date()) {
-  const text = html
+function battlePostText(html: string): string[] {
+  return html
     .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "")
     .split(/<[^>]+>/).map((x) => decode(x)).filter(Boolean);
+}
+
+export function parseBattlePost(html: string, now = new Date()) {
+  const text = battlePostText(html);
   const head = text.find((t) => /^Lv \d+ /.test(t));
   if (!head) return null;
   const level = Number(head.match(/^Lv (\d+)/)![1]);
@@ -202,10 +253,82 @@ export function parseBattlePost(html: string, now = new Date()) {
   };
 }
 
+const QUALITY_BY_CLASS = ["poor", "common", "uncommon", "rare", "epic", "legendary"];
+const num = (s: string | undefined) => {
+  const m = s?.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : NaN;
+};
+
+/** Equipped gear from a BattlePost page: slot, item id, name and quality, in page order. */
+export function parseBattlePostGear(html: string): SyncedItem[] {
+  const out: SyncedItem[] = [];
+  const re = /href="[^"]*item=(\d+)[^"]*"[^>]*>[\s\S]*?<b class="q(\d)">([^<]+)<\/b><small>([^<·]+)·/g;
+  for (const m of html.matchAll(re)) {
+    out.push({ slot: decode(m[4]), id: Number(m[1]), name: decode(m[3]), quality: QUALITY_BY_CLASS[Number(m[2])] ?? "common" });
+  }
+  return out;
+}
+
+/** BattlePost's talent panel: talent name → rank, and points per tree. */
+export function parseBattlePostTalents(text: string[]): { ranks: Record<string, number>; trees: Record<string, number> } {
+  const ranks: Record<string, number> = {};
+  for (let i = 1; i < text.length; i++) {
+    const m = text[i].match(/^Rank (\d+)\/(\d+)$/);
+    if (m && Number(m[1]) > 0) ranks[text[i - 1]] = Number(m[1]);
+  }
+  const trees: Record<string, number> = {};
+  // The talent panel's header is the last "Talents" before "Spent" (the site menu has one too).
+  const end = text.indexOf("Spent");
+  const start = end >= 0 ? text.lastIndexOf("Talents", end) : -1;
+  if (start >= 0 && end > start) {
+    for (let i = start + 1; i + 1 < end; i += 2) {
+      if (/^\d+$/.test(text[i + 1])) trees[text[i]] = Number(text[i + 1]);
+    }
+  }
+  return { ranks, trees };
+}
+
+/** The Stats tab of a BattlePost page. Null if it isn't there. */
+export function parseBattlePostSheet(text: string[]): CharacterSheet | null {
+  const start = text.findIndex((t) => /^As of last logout/.test(t));
+  if (start < 0) return null;
+  const t = text.slice(start);
+  const after = (label: string, from = 0) => {
+    const i = t.indexOf(label, from);
+    return i >= 0 ? t[i + 1] : undefined;
+  };
+  const section = (label: string) => Math.max(0, t.indexOf(label));
+  const melee = section("Melee"), ranged = section("Ranged"), def = section("Defense");
+  const weapon = (s: string | undefined): SheetWeapon | null => {
+    const m = s?.match(/([\d,]+)\s*[–-]\s*([\d,]+)(?:\s*·\s*speed\s*([\d.]+))?/);
+    return m ? { min: num(m[1]), max: num(m[2]), speed: m[3] ? Number(m[3]) : null } : null;
+  };
+  const n = (label: string, from = 0) => num(after(label, from));
+  const sheet: CharacterSheet = {
+    strength: n("Strength"), agility: n("Agility"), stamina: n("Stamina"), intellect: n("Intellect"), spirit: n("Spirit"),
+    health: n("Health") || null, mana: n("Mana") || null,
+    meleeAp: n("Attack power", melee), mainHand: weapon(after("Main hand", melee)), offHand: weapon(after("Off hand", melee)),
+    meleeCrit: n("Crit", melee), meleeHit: n("Hit", melee) || 0,
+    rangedAp: n("Ranged attack power", ranged), ranged: weapon(after("Ranged weapon", ranged)),
+    rangedCrit: n("Crit", ranged), rangedHit: n("Hit", ranged) || 0, rangedHaste: n("Haste", ranged) || 0,
+    armor: n("Armor", def) || null, dodge: n("Dodge", def) || null, parry: n("Parry", def) || null,
+  };
+  return Number.isFinite(sheet.agility) && Number.isFinite(sheet.rangedAp) ? sheet : null;
+}
+
+/** A weapon's damage and speed from a Wowhead tooltip's text. */
+export function parseWeaponTooltip(id: number, name: string, tooltipHtml: string): WeaponInfo | null {
+  const text = decode(tooltipHtml.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ");
+  const m = text.match(/(\d+)\s*-\s*(\d+)\s+Damage\s+Speed\s+([\d.]+)/);
+  return m ? { id, name, min: Number(m[1]), max: Number(m[2]), speed: Number(m[3]) } : null;
+}
+
 export interface SyncInputs {
   raiderIo: Json;
   /** BattlePost character page, if it answered. */
   battlePost?: { html: string; url: string } | null;
+  /** Equipped weapons' damage and speed, if their tooltips were read. */
+  weapons?: SyncedCharacter["weapons"];
   /** ForeverDB character page, if it was found. */
   foreverDb?: { html: string; url: string } | null;
   region: string;
@@ -214,13 +337,18 @@ export interface SyncInputs {
   now?: Date;
 }
 
-export function buildCharacter({ raiderIo, battlePost, foreverDb, region, previous, now = new Date() }: SyncInputs): SyncedCharacter {
+export function buildCharacter({ raiderIo, battlePost, foreverDb, weapons, region, previous, now = new Date() }: SyncInputs): SyncedCharacter {
   const r = parseRaiderIo(raiderIo);
   const links: { label: string; url: string }[] = [];
   if (r.url) links.push({ label: "Raider.IO", url: r.url });
   // BattlePost reads the Armory when asked, so when it's at least as far along it wins for level and item level.
   const bp = battlePost ? parseBattlePost(battlePost.html, now) : null;
   const live = bp && bp.level >= r.level ? bp : null;
+  // BattlePost's gear, talents and character sheet are read at the same time as its level, so they come with it.
+  const bpText = live && battlePost ? battlePostText(battlePost.html) : null;
+  const bpGear = live && battlePost ? parseBattlePostGear(battlePost.html) : [];
+  const bpTalents = bpText ? parseBattlePostTalents(bpText) : null;
+  const sheet = bpText ? parseBattlePostSheet(bpText) : null;
   if (bp && battlePost) links.push({ label: "BattlePost", url: battlePost.url });
   const prof = foreverDb ? parseForeverDbProfessions(foreverDb.html) : { professions: {}, professionMax: {} };
   const haveProfs = Object.keys(prof.professions).length > 0;
@@ -233,7 +361,12 @@ export function buildCharacter({ raiderIo, battlePost, foreverDb, region, previo
     itemLevel: live?.itemLevel ?? r.itemLevel,
     lastSeen: live?.lastSeen ?? r.lastSeen,
     spec: live?.spec ?? null,
-    gearFrom: r.lastSeen,
+    equipment: bpGear.length ? bpGear : r.equipment,
+    talents: bpTalents && Object.keys(bpTalents.trees).length ? bpTalents.trees : r.talents,
+    talentRanks: bpTalents && Object.keys(bpTalents.ranks).length ? bpTalents.ranks : null,
+    sheet,
+    weapons: weapons ?? null,
+    gearFrom: bpGear.length ? live?.lastSeen ?? r.lastSeen : r.lastSeen,
     region: region.toUpperCase(),
     professions: haveProfs ? prof.professions : previous?.professions ?? {},
     professionMax: haveProfs ? prof.professionMax : previous?.professionMax ?? {},
@@ -246,8 +379,9 @@ export function buildCharacter({ raiderIo, battlePost, foreverDb, region, previo
 /** The parts that count as a change; timestamps alone don't. */
 export function fingerprint(c: SyncedCharacter | null): string {
   if (!c) return "";
-  const { syncedAt: _a, lastSeen: _b, professionsFrom: _c, gearFrom: _d, ...rest } = c;
-  void _a; void _b; void _c; void _d;
+  // The sheet moves with buffs at logout, so on its own it isn't a change; gear and talent changes still are.
+  const { syncedAt: _a, lastSeen: _b, professionsFrom: _c, gearFrom: _d, sheet: _e, weapons: _f, ...rest } = c;
+  void _a; void _b; void _c; void _d; void _e; void _f;
   return JSON.stringify(rest);
 }
 

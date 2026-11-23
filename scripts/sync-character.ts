@@ -4,7 +4,8 @@
  *   npm run sync:character
  *
  *   Raider.IO  class, faction, guild, gear and talent points (crawled from the Armory every few days)
- *   BattlePost level, item level and main talent tree, read live from the Armory (optional)
+ *   BattlePost level, item level, gear, talent ranks and character sheet, read live from the Armory (optional)
+ *   Wowhead    damage and speed of the equipped weapons (tooltip service), for the DPS estimate (optional)
  *   ForeverDB  profession skills, when you upload with the ForeverDB addon (optional)
  *
  * The character comes from sync.config.json: region (eu or us), realm (the ruleset: normal, pvp, rp or pvp-rp)
@@ -13,8 +14,8 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import {
-  appendHistory, battlePostUrl, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
-  pickForeverDbLink, raiderIoUrl, type CharacterFile,
+  appendHistory, battlePostUrl, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseBattlePostGear,
+  parseForeverDbProfessions, parseWeaponTooltip, pickForeverDbLink, raiderIoUrl, type CharacterFile, type SyncedCharacter,
 } from "../src/lib/characterSync.ts";
 
 const OUT = "src/data/character.json";
@@ -64,6 +65,24 @@ try {
   console.warn(`BattlePost unavailable, using Raider.IO's level (${(e as Error).message})`);
 }
 
+// Weapon damage and speed for the DPS estimate: BattlePost names the items, Wowhead's tooltip service has their stats.
+let weapons: SyncedCharacter["weapons"] = null;
+if (battlePost) {
+  const slots = { "Main hand": "mainHand", "Off hand": "offHand", Ranged: "ranged" } as const;
+  for (const item of parseBattlePostGear(battlePost.html)) {
+    const key = slots[item.slot as keyof typeof slots];
+    if (!key) continue;
+    try {
+      const tip = await getText(`https://nether.wowhead.com/forever/tooltip/item/${item.id}`, 2);
+      const w = tip.status === 200 ? parseWeaponTooltip(item.id, item.name, (JSON.parse(tip.body) as { tooltip?: string }).tooltip ?? "") : null;
+      if (w) weapons = { ...weapons, [key]: w };
+    } catch (e) {
+      console.warn(`Couldn't read ${item.name}'s tooltip (${(e as Error).message})`);
+    }
+    await sleep(300);
+  }
+}
+
 // ForeverDB: optional, for professions.
 let foreverDb: { html: string; url: string } | null = null;
 try {
@@ -81,7 +100,7 @@ if (!foreverDb) console.warn("ForeverDB has no page for this character yet, so p
 else if (!Object.keys(parseForeverDbProfessions(foreverDb.html).professions).length) console.warn("ForeverDB lists the character but no professions.");
 
 const file = JSON.parse(readFileSync(OUT, "utf8")) as CharacterFile;
-const next = buildCharacter({ raiderIo, battlePost, foreverDb, region, previous: file.character });
+const next = buildCharacter({ raiderIo, battlePost, foreverDb, weapons, region, previous: file.character });
 
 if (fingerprint(file.character) === fingerprint(next)) {
   console.log(`No changes: ${next.name} is still level ${next.level}.`);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  appendHistory, battlePostUrl, buildCharacter, parseBattlePost, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
+  appendHistory, battlePostUrl, buildCharacter, parseBattlePost, parseBattlePostGear, parseBattlePostSheet, parseBattlePostTalents, parseWeaponTooltip, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
   parseRaiderIo, pickForeverDbLink, raiderIoUrl, type SyncedCharacter,
 } from "@/lib/characterSync";
 import { applySync, DEFAULT_CHARACTER } from "@/lib/character";
@@ -157,5 +157,38 @@ describe("BattlePost page", () => {
   it("is ignored when it's behind Raider.IO", () => {
     const c = buildCharacter({ raiderIo: { ...rio, level: 40 }, battlePost: { html: bpPage, url: "bp" }, region: "eu", now });
     expect(c.level).toBe(40);
+  });
+});
+
+describe("BattlePost gear, talents and sheet", () => {
+  const page = `<a class="pd-s" href="https://www.wowhead.com/forever/item=274598"><span class="pd-t"><b class="q3">Bloodslash Axe</b><small>Main hand · iLvl 39</small></span></a>
+<a class="pd-s" href="https://www.wowhead.com/forever/item=270032?ench=8"><span class="pd-t"><b class="q3">Cultist&#039;s Armguards</b><small>Wrist · iLvl 29</small></span></a>
+<nav><a>Talents</a></nav><h3>Talents</h3><div>Beast Mastery</div><b>7</b><div>Marksmanship</div><b>10</b><div>Survival</div><b>11</b><span>Spent</span><b>28</b>
+<b>5/5</b><b>Lethal Attacks</b><span>Rank 5/5</span><b>0/5</b><b>Efficiency</b><span>Rank 0/5</span>
+<h3>Stats</h3><p>As of last logout, with gear and buffs</p><dt>Strength</dt><dd>46 (base 38)</dd><dt>Agility</dt><dd>145 (base 74)</dd>
+<dt>Stamina</dt><dd>119</dd><dt>Intellect</dt><dd>69</dd><dt>Spirit</dt><dd>67</dd><h4>Melee</h4><dt>Attack power</dt><dd>382</dd>
+<dt>Main hand</dt><dd>114–155 · speed 2.5 · 53.9 DPS</dd><dt>Crit</dt><dd>7.58%</dd><dt>Hit</dt><dd>1%</dd>
+<h4>Ranged</h4><dt>Ranged attack power</dt><dd>481</dd><dt>Ranged weapon</dt><dd>159–196</dd><dt>Crit</dt><dd>11.06%</dd><dt>Hit</dt><dd>1%</dd><dt>Haste</dt><dd>10%</dd>
+<h4>Defense</h4><dt>Armor</dt><dd>1,007 (base 56)</dd>`;
+  const text = page.split(/<[^>]+>/).map((s) => s.trim()).filter(Boolean);
+
+  it("reads equipped gear with quality and decoded names", () => {
+    expect(parseBattlePostGear(page)).toEqual([
+      { slot: "Main hand", id: 274598, name: "Bloodslash Axe", quality: "rare" },
+      { slot: "Wrist", id: 270032, name: "Cultist's Armguards", quality: "rare" },
+    ]);
+  });
+  it("reads talent ranks and tree points, skipping the site menu", () => {
+    expect(parseBattlePostTalents(text)).toEqual({ ranks: { "Lethal Attacks": 5 }, trees: { "Beast Mastery": 7, Marksmanship: 10, Survival: 11 } });
+  });
+  it("reads the character sheet", () => {
+    expect(parseBattlePostSheet(text)).toMatchObject({
+      agility: 145, meleeAp: 382, mainHand: { min: 114, max: 155, speed: 2.5 }, offHand: null, meleeCrit: 7.58,
+      rangedAp: 481, ranged: { min: 159, max: 196, speed: null }, rangedCrit: 11.06, rangedHaste: 10, armor: 1007,
+    });
+    expect(parseBattlePostSheet(["nothing"])).toBeNull();
+  });
+  it("reads a weapon's speed from its tooltip", () => {
+    expect(parseWeaponTooltip(1, "Gun", "<td>41 - 78 Damage</td><th>Speed 2.80</th>")).toEqual({ id: 1, name: "Gun", min: 41, max: 78, speed: 2.8 });
   });
 });
