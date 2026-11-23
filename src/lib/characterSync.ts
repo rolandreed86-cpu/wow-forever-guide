@@ -44,6 +44,8 @@ export interface CharacterSheet {
   stamina: number;
   intellect: number;
   spirit: number;
+  /** Stats before gear and buffs, when the page shows them. */
+  base?: { strength: number; agility: number; stamina: number; intellect: number; spirit: number } | null;
   health: number | null;
   mana: number | null;
   meleeAp: number;
@@ -304,8 +306,11 @@ export function parseBattlePostSheet(text: string[]): CharacterSheet | null {
     return m ? { min: num(m[1]), max: num(m[2]), speed: m[3] ? Number(m[3]) : null } : null;
   };
   const n = (label: string, from = 0) => num(after(label, from));
+  const baseOf = (label: string) => num(after(label)?.match(/base\s+([\d,]+)/)?.[1]);
+  const base = { strength: baseOf("Strength"), agility: baseOf("Agility"), stamina: baseOf("Stamina"), intellect: baseOf("Intellect"), spirit: baseOf("Spirit") };
   const sheet: CharacterSheet = {
     strength: n("Strength"), agility: n("Agility"), stamina: n("Stamina"), intellect: n("Intellect"), spirit: n("Spirit"),
+    base: Object.values(base).every(Number.isFinite) ? base : null,
     health: n("Health") || null, mana: n("Mana") || null,
     meleeAp: n("Attack power", melee), mainHand: weapon(after("Main hand", melee)), offHand: weapon(after("Off hand", melee)),
     meleeCrit: n("Crit", melee), meleeHit: n("Hit", melee) || 0,

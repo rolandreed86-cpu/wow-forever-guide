@@ -12,7 +12,7 @@ import {
 } from "@/data/talentBuilds";
 import { Loading, LoadError, PageTitle } from "@/components/States";
 import { CompareBuilds, MyBuilds, useSavedBuilds } from "@/components/TalentBuilds";
-import { NO_PET, PetAndDps, defaultPet, type PlaystyleChoice } from "@/components/PetDps";
+import { NO_PET, PetAndDps, defaultPet, useGearFor, type GearMode, type PlaystyleChoice } from "@/components/PetDps";
 
 const STORE = "wa:talents:";
 const PRESET_STORE = "wa:talent-preset:";
@@ -118,6 +118,10 @@ function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
   const [style, setStyle] = useState<PlaystyleChoice>(() => load<PlaystyleChoice>(STYLE_STORE + data.class, "auto"));
   useEffect(() => save(PET_STORE + data.class, pet), [pet, data.class]);
   useEffect(() => save(STYLE_STORE + data.class, style), [style, data.class]);
+  // DPS gear: your gear now at your own level, projected best in slot at any other level (you can switch either way).
+  const [gearMode, setGearMode] = useState<GearMode>(() => (level === charLevel ? "current" : "bis"));
+  useEffect(() => setGearMode(level === charLevel ? "current" : "bis"), [level, charLevel]);
+  const gear = useGearFor(data.class === "hunter" ? gearMode : "current", character.faction);
   const [activeId, setActiveId] = useState<string | null>(() => load<string | null>(ACTIVE_STORE + data.class, null));
   const [selected, setSelected] = useState<Set<string>>(() => new Set(load<string[]>(COMPARE_STORE + data.class, builds.filter((b) => b.recommended).map((b) => `r:${b.id}`))));
   const toggle = (key: string) => setSelected((cur) => { const n = new Set(cur); if (n.has(key)) n.delete(key); else n.add(key); return n; });
@@ -212,7 +216,8 @@ function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
       </div>
 
       {data.class === "hunter" && (
-        <PetAndDps cls={data} alloc={alloc} level={level} faction={character.faction} pet={pet} setPet={setPet} style={style} setStyle={setStyle} />
+        <PetAndDps cls={data} alloc={alloc} level={level} faction={character.faction} pet={pet} setPet={setPet} style={style} setStyle={setStyle}
+          gearMode={gearMode} setGearMode={setGearMode} gear={gear.gearFor(level)} gearLoading={gear.loading} />
       )}
 
       <MyBuilds data={data} alloc={alloc} level={level} legacy={legacy} pet={data.class === "hunter" ? pet : NO_PET} playstyle={style}
@@ -225,7 +230,7 @@ function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
         }} />
 
       <CompareBuilds data={data} alloc={alloc} level={level} legacy={legacy} pet={data.class === "hunter" ? pet : NO_PET} playstyle={style}
-        faction={character.faction} charLevel={charLevel} saved={saved.list} recommended={builds} selected={selected} toggle={toggle} />
+        faction={character.faction} gearMode={gearMode} gearFor={gear.gearFor} saved={saved.list} recommended={builds} selected={selected} toggle={toggle} />
 
       {hover && (
         <FloatingTooltip rect={hover.rect} onClose={() => setHover(null)} pinned={hover.pinned}>

@@ -6,7 +6,7 @@ import {
 } from "@/lib/talents";
 import { analyzeBuild, type BuildAnalysis, type SuggestionKind } from "@/lib/buildAnalysis";
 import { TALENT_NOTES, buildAtPoints, type RecommendedBuild } from "@/data/talentBuilds";
-import { NO_PET, buildDps, defaultPet, petAdvice, petChoice, type PlaystyleChoice } from "@/components/PetDps";
+import { NO_PET, buildDps, currentGear, defaultPet, petAdvice, petChoice, type GearMode, type GearSource, type PlaystyleChoice } from "@/components/PetDps";
 import { PLAYSTYLE_LABEL } from "@/lib/dps";
 import type { Faction } from "@/data/classes";
 import { SYNCED } from "@/lib/character";
@@ -165,9 +165,9 @@ const KIND_STYLE: Record<SuggestionKind, { label: string; cls: string }> = {
   good: { label: "Good", cls: "good" },
 };
 
-export function CompareBuilds({ data, alloc, level, legacy, pet, playstyle, faction, charLevel, saved, recommended, selected, toggle }: {
+export function CompareBuilds({ data, alloc, level, legacy, pet, playstyle, faction, gearMode, gearFor, saved, recommended, selected, toggle }: {
   data: TalentClass; alloc: Allocation; level: number; legacy: number; pet: string; playstyle: PlaystyleChoice;
-  faction: Faction; charLevel: number; saved: SavedBuild[];
+  faction: Faction; gearMode: GearMode; gearFor: (level: number) => GearSource | null; saved: SavedBuild[];
   recommended: RecommendedBuild[]; selected: Set<string>; toggle: (key: string) => void;
 }) {
   const notes = TALENT_NOTES[data.class] ?? {};
@@ -175,40 +175,45 @@ export function CompareBuilds({ data, alloc, level, legacy, pet, playstyle, fact
 
   const columns: Column[] = useMemo(() => {
     const cols: Column[] = [];
-    const push = (key: string, name: string, sub: string, a: Allocation, b: number, rec: boolean, p: string, st: PlaystyleChoice) =>
+    // On your gear now every column uses your sheet; on best in slot each column uses its own level's gear.
+    const gearAt = (lvl: number) => (gearMode === "current" ? currentGear() : gearFor(lvl));
+    const petLevel = (lvl: number) => gearAt(lvl)?.level ?? lvl;
+    const push = (key: string, name: string, sub: string, a: Allocation, b: number, rec: boolean, p: string, st: PlaystyleChoice, lvl: number) => {
+      const g = gearAt(lvl);
       cols.push({
         key, name, sub, alloc: a, budget: b, recommended: rec, pet: p, style: st,
         analysis: analyzeBuild(data, a, b, recommended, notes),
-        dps: buildDps(data, a, p, st),
-        petTips: rec ? [] : petAdvice(data, a, p, st, charLevel, faction),
+        dps: buildDps(data, a, p, st, g),
+        petTips: rec ? [] : petAdvice(data, a, p, st, g, faction),
       });
+    };
     // The builder's build gets its own column unless it is exactly one of the ticked saved builds.
     const code = encodeBuild(data, alloc);
     const same = saved.find((s) => selected.has(`s:${s.id}`) && s.code === code && s.level === level && s.legacy === legacy
       && (s.pet ?? pet) === pet && (s.playstyle ?? "auto") === playstyle);
-    if (!same) push("current", "In the builder now", `level ${level}`, alloc, budget, false, pet, playstyle);
+    if (!same) push("current", "In the builder now", `level ${level}`, alloc, budget, false, pet, playstyle, level);
     for (const s of saved) {
       if (!selected.has(`s:${s.id}`)) continue;
       const a = decodeBuild(data, s.code);
       const b = pointsAvailable(s.level, s.legacy);
       if (a && isValid(data, a, pointsAvailable(60, MAX_LEGACY_BONUS))) {
         push(`s:${s.id}`, s.name, `saved, level ${s.level}${s === same ? " · in the builder" : ""}`, a, b, false,
-          s.pet ?? defaultPet(data, a, charLevel, faction), s.playstyle ?? "auto");
+          s.pet ?? defaultPet(data, a, petLevel(s.level), faction), s.playstyle ?? "auto", s.level);
       }
     }
     const live = SYNCED.character;
     if (selected.has("k:now") && live?.talentRanks && live.classId === data.class) {
       const a = allocFromNames(data, live.talentRanks).alloc;
       push("k:now", `${live.name.split(" ")[0]}'s talents now`, `from the Armory, level ${live.level}`, a, pointsAvailable(live.level), false,
-        defaultPet(data, a, charLevel, faction), "auto");
+        defaultPet(data, a, petLevel(live.level), faction), "auto", live.level);
     }
     for (const r of recommended) {
       if (!selected.has(`r:${r.id}`)) continue;
       const a = allocFromNames(data, buildAtPoints(r, budget)).alloc;
-      push(`r:${r.id}`, r.name, `recommended, level ${level}`, a, budget, true, defaultPet(data, a, charLevel, faction), "auto");
+      push(`r:${r.id}`, r.name, `recommended, level ${level}`, a, budget, true, defaultPet(data, a, petLevel(level), faction), "auto", level);
     }
     return cols;
-  }, [data, alloc, level, legacy, budget, saved, recommended, selected, notes, pet, playstyle, charLevel, faction]);
+  }, [data, alloc, level, legacy, budget, saved, recommended, selected, notes, pet, playstyle, gearMode, gearFor, faction]);
   const anyDps = columns.some((c) => c.dps);
 
   // Talents where the compared builds disagree, in tree order.
@@ -270,7 +275,7 @@ export function CompareBuilds({ data, alloc, level, legacy, pet, playstyle, fact
             <Row label="Same as recommended" cols={columns} get={(c) => (c.recommended ? "—" : c.analysis.closest ? `${Math.round(c.analysis.closest.match * 100)}%` : "—")} />
             <Row label="Pet" cols={columns} get={(c) => petLabel(c.pet)} />
             {anyDps && <Row label="Playstyle" cols={columns} get={(c) => (c.dps ? PLAYSTYLE_LABEL[c.dps.playstyle] : "—")} />}
-            {anyDps && <Row label="Estimated DPS (your gear)" cols={columns} strong get={(c) => (c.dps ? `${Math.round(c.dps.total)}` : "—")} />}
+            {anyDps && <Row label={gearMode === "current" ? "Estimated DPS (your gear now)" : "Estimated DPS (best in slot at each level)"} cols={columns} strong get={(c) => (c.dps ? `${Math.round(c.dps.total)}` : "—")} />}
             {anyDps && <Row label="Pet and hawks share" cols={columns} get={(c) => (c.dps ? `${Math.round(c.dps.pet)} (${Math.round(c.dps.petShare * 100)}%)` : "—")} />}
             <Row label="Suggestions" cols={columns} get={(c) => {
               const n = c.analysis.suggestions.filter((s) => s.kind === "warn" || s.kind === "improve").length + c.petTips.length;

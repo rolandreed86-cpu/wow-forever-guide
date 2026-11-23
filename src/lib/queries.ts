@@ -8,14 +8,14 @@ export const useDungeons = () => useQuery({ queryKey: ["dungeons"], queryFn: fc.
 export const useDungeon = (id: string | undefined) =>
   useQuery({ queryKey: ["dungeon", id], queryFn: () => fc.dungeon(id!), enabled: !!id, ...long });
 /** Every dungeon with its loot table and quests. */
-export const useDungeonDetails = () => useQuery({ queryKey: ["dungeon-details"], queryFn: fc.dungeonDetails, ...long });
-export const useQuests = () => useQuery({ queryKey: ["quests"], queryFn: fc.quests, ...long });
+export const useDungeonDetails = (enabled = true) => useQuery({ queryKey: ["dungeon-details"], queryFn: fc.dungeonDetails, ...long, enabled });
+export const useQuests = (enabled = true) => useQuery({ queryKey: ["quests"], queryFn: fc.quests, ...long, enabled });
 export const useRares = () => useQuery({ queryKey: ["rares"], queryFn: fc.rares, ...long });
 export const useZones = () => useQuery({ queryKey: ["zones"], queryFn: fc.zones, ...long });
 export const useReputations = () => useQuery({ queryKey: ["reputations"], queryFn: fc.reputations, ...long });
 export const useClassQuests = () => useQuery({ queryKey: ["class-quests"], queryFn: fc.classQuests, ...long });
 /** The full item database (~7 MB, fetched once and kept in memory). */
-export const useKb = () => useQuery({ queryKey: ["kb"], queryFn: loadKb, staleTime: Infinity, gcTime: Infinity, retry: 1 });
+export const useKb = (enabled = true) => useQuery({ queryKey: ["kb"], queryFn: loadKb, staleTime: Infinity, gcTime: Infinity, retry: 1, enabled });
 
 import type { TalentClass } from "./talents";
 import { DATA_BASE } from "./api";
