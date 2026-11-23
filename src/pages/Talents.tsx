@@ -11,9 +11,12 @@ import {
   CATEGORY_LABEL, HUNTER_BUILDS, TALENT_NOTES, buildAtPoints, levellingPlan, type RecommendedBuild,
 } from "@/data/talentBuilds";
 import { Loading, LoadError, PageTitle } from "@/components/States";
+import { CompareBuilds, MyBuilds, useSavedBuilds } from "@/components/TalentBuilds";
 
 const STORE = "wa:talents:";
 const PRESET_STORE = "wa:talent-preset:";
+const ACTIVE_STORE = "wa:talent-active:";
+const COMPARE_STORE = "wa:talent-compare:";
 function load<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
 }
@@ -80,7 +83,7 @@ export default function Talents({ shared }: { shared?: string | null }) {
       {q.isLoading && <Loading what="talent trees" />}
       {q.isError && <LoadError what="talent trees" error={q.error} retry={() => q.refetch()} />}
       {q.data && (
-        <Planner key={classId} data={q.data} level={level} legacy={legacy} setLevel={setLevel}
+        <Planner key={classId} data={q.data} level={level} legacy={legacy} setLevel={setLevel} setLegacy={setLegacy}
           sharedCode={share && share.classId === classId ? share.code : null} />
       )}
     </section>
@@ -89,8 +92,8 @@ export default function Talents({ shared }: { shared?: string | null }) {
 
 interface Hover { talent: Talent; tree: TalentTree; rect: DOMRect; pinned: boolean }
 
-function Planner({ data, level, legacy, setLevel, sharedCode }: {
-  data: TalentClass; level: number; legacy: number; setLevel: (n: number) => void; sharedCode: string | null;
+function Planner({ data, level, legacy, setLevel, setLegacy, sharedCode }: {
+  data: TalentClass; level: number; legacy: number; setLevel: (n: number) => void; setLegacy: (n: number) => void; sharedCode: string | null;
 }) {
   const budget = pointsAvailable(level, legacy);
   const builds = buildsFor(data.class);
@@ -105,6 +108,12 @@ function Planner({ data, level, legacy, setLevel, sharedCode }: {
   const [hover, setHover] = useState<Hover | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const preset = builds.find((b) => b.id === presetId) ?? null;
+  const saved = useSavedBuilds(data.class);
+  const [activeId, setActiveId] = useState<string | null>(() => load<string | null>(ACTIVE_STORE + data.class, null));
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(load<string[]>(COMPARE_STORE + data.class, builds.filter((b) => b.recommended).map((b) => `r:${b.id}`))));
+  const toggle = (key: string) => setSelected((cur) => { const n = new Set(cur); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  useEffect(() => save(ACTIVE_STORE + data.class, activeId), [activeId, data.class]);
+  useEffect(() => save(COMPARE_STORE + data.class, [...selected]), [selected, data.class]);
 
   // A shared build opens at the level it needs.
   useEffect(() => {
@@ -192,6 +201,13 @@ function Planner({ data, level, legacy, setLevel, sharedCode }: {
             hoverPinned={hover?.pinned ?? false} />
         ))}
       </div>
+
+      <MyBuilds data={data} alloc={alloc} level={level} legacy={legacy} saved={saved} activeId={activeId} setActiveId={setActiveId}
+        selected={selected} toggle={toggle}
+        onLoad={(b, a) => { setLevel(b.level); setLegacy(b.legacy); setAlloc(a); setActiveId(b.id); setNotice(`Loaded “${b.name}”.`); }} />
+
+      <CompareBuilds data={data} alloc={alloc} level={level} legacy={legacy} saved={saved.list} recommended={builds}
+        selected={selected} toggle={toggle} />
 
       {hover && (
         <FloatingTooltip rect={hover.rect} onClose={() => setHover(null)} pinned={hover.pinned}>
