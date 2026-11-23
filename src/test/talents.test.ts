@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addLock, addPoint, fitToBudget, pointsAvailable, removePoint, totalSpent, type TalentClass } from "@/lib/talents";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  addLock, addPoint, allocFromNames, decodeBuild, encodeBuild, fitToBudget, isValid, pointsAvailable, removePoint, splitOf,
+  totalSpent, type TalentClass,
+} from "@/lib/talents";
+import { HUNTER_BUILDS, TALENT_NOTES, buildAtPoints, levellingPlan } from "@/data/talentBuilds";
 import { parseHash } from "@/lib/router";
 
 const t = (id: string, row: number, col: number, maxRank: number, prerequisite: string | null = null) => ({
@@ -61,5 +67,65 @@ describe("hash routes", () => {
     expect(parseHash("#gear")).toEqual({ view: "gear", param: null });
     expect(parseHash("#dungeon-sm-armory")).toEqual({ view: "dungeon", param: "sm-armory" });
     expect(parseHash("#dungeons")).toEqual({ view: "dungeons", param: null });
+  });
+});
+
+describe("build codes", () => {
+  it("round-trips an allocation", () => {
+    const a = add(add(add({}, "a1", 5), "a3", 2), "b1", 3);
+    const code = encodeBuild(cls, a);
+    expect(code).toBe("502-3");
+    expect(decodeBuild(cls, code)).toEqual(a);
+  });
+  it("writes an empty tree as 0 and rejects bad codes", () => {
+    expect(encodeBuild(cls, {})).toBe("0-0");
+    expect(decodeBuild(cls, "0-0")).toEqual({});
+    expect(decodeBuild(cls, "9-0")).toBeNull(); // over max rank
+    expect(decodeBuild(cls, "5")).toBeNull(); // wrong tree count
+    expect(decodeBuild(cls, "55555-0")).toBeNull(); // more talents than the tree has
+  });
+  it("parses shared talent links", () => {
+    expect(parseHash("#talents-hunter-0-55-5")).toEqual({ view: "talents", param: "hunter-0-55-5" });
+    expect(parseHash("#talents")).toEqual({ view: "talents", param: null });
+  });
+});
+
+describe("recommended builds", () => {
+  it("cuts a build to a levelling stage in spend order", () => {
+    const b = HUNTER_BUILDS.find((x) => x.id === "sv-weave")!;
+    expect(buildAtPoints(b, 7)).toEqual({ "Improved Tracking": 5, "Savage Strikes": 2 });
+    const plan = levellingPlan(b);
+    expect(plan[0]).toMatchObject({ talent: "Improved Tracking", from: 10, to: 14 });
+    expect(plan.at(-1)!.to).toBe(60);
+    expect(levellingPlan(b, 5)[0]).toMatchObject({ from: 10, to: 10 });
+  });
+  it("spends exactly 51 points, and 56 with Legacy", () => {
+    for (const b of HUNTER_BUILDS) {
+      expect(b.order.reduce((n, s) => n + s.points, 0), b.id).toBe(51);
+      expect(b.legacy.reduce((n, s) => n + s.points, 0), b.id).toBeLessThanOrEqual(5);
+      const split = b.split.split("/").map(Number);
+      expect(split.reduce((x, y) => x + y, 0), b.id).toBe(51);
+    }
+  });
+
+  const file = resolve(__dirname, "../../public/data/talents/hunter.json");
+  it.skipIf(!existsSync(file))("is legal at every level against the real Forever trees", () => {
+    const hunter = JSON.parse(readFileSync(file, "utf8")) as TalentClass;
+    for (const b of HUNTER_BUILDS) {
+      for (let pts = 1; pts <= 56; pts++) {
+        const { alloc, missing } = allocFromNames(hunter, buildAtPoints(b, pts));
+        expect(missing, b.id).toEqual([]);
+        expect(isValid(hunter, alloc, pts), `${b.id} at ${pts} points`).toBe(true);
+        expect(totalSpent(hunter, alloc)).toBe(Math.min(pts, 51 + b.legacy.reduce((n, s) => n + s.points, 0)));
+      }
+      const { alloc } = allocFromNames(hunter, buildAtPoints(b, 51));
+      expect(splitOf(hunter, alloc).join("/"), b.id).toBe(b.split);
+      expect(decodeBuild(hunter, encodeBuild(hunter, alloc))).toEqual(alloc);
+    }
+  });
+  it.skipIf(!existsSync(file))("has a note for every hunter talent", () => {
+    const hunter = JSON.parse(readFileSync(file, "utf8")) as TalentClass;
+    const names = hunter.trees.flatMap((t) => t.talents.map((x) => x.name));
+    expect(names.filter((n) => !TALENT_NOTES.hunter[n])).toEqual([]);
   });
 });

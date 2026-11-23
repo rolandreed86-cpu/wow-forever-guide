@@ -4,13 +4,14 @@ import { useEffect, useState, type AnchorHTMLAttributes, type ReactNode } from "
  * Tiny hash router. Routes are plain "#name" or "#name-param" hashes (no slashes), which work everywhere
  * the app is hosted, including inside a Claude artifact where only a plain #name passes through.
  *   #guidance, #dungeons, #dungeon-sm-armory, #gear, #quests, #talents, #professions, #collections, #about
+ *   #talents-hunter-<build code> opens the talent planner with a shared build.
  */
 export interface Route {
   view: string;
   param: string | null;
 }
 
-const PARAM_VIEWS = ["dungeon"];
+const PARAM_VIEWS = ["dungeon", "talents"];
 
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, "").trim();

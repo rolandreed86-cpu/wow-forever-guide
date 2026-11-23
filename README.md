@@ -9,7 +9,7 @@ A companion app for **World of Warcraft: Forever**. It tells you what's coming a
 | Page | What it does |
 |---|---|
 | **Guidance** | Your next big milestone (for example *mail armour at 40*), a level-by-level road ahead for the next 5, 10 or 20 levels, what unlocked at your level, gear to keep for an upcoming armour unlock, dungeons and key quests for your level, and profession goals. |
-| **Talents** | Talent planner for all nine classes with the Forever trees (including the new 16-point milestones), row gates, prerequisites, Legacy bonus points and full rank text. |
+| **Talents** | Talent builder for all nine classes with the Forever trees (including the new 16-point milestones), row gates, prerequisites and Legacy bonus points. Hover or tap a talent for every rank, a plain-English overview and which recommended builds take it. Save builds in your browser, share them as a code or link. For hunters: four recommended DPS builds (Survival weave, Survival melee, Marksmanship, Beast Mastery) compared side by side, each with a level-by-level levelling order, stat priority and how to play it. |
 | **Dungeons & Raids** | All Forever dungeons with level ranges and difficulty colours. Each dungeon shows loot by boss (filtered to your class, with full item tooltips), its quests and bosses. Forever's first three raids and the content roadmap. |
 | **Gear** | Best in slot for any level from 1 to 60, ranked with rough class stat weights. Choose whether to include crafted gear, rare world drops and raid loot. Crafted items are flagged when your professions can make them. |
 | **Quests** | Dungeon and elite quests near your level, searchable, with rewards, XP and prerequisites, plus your class quests and the Waylaid Supplies reputation. |
