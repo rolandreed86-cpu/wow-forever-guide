@@ -53,11 +53,8 @@ const root = resolve(__dirname, "../../public");
 const files = ["data/items.json", "data/fc/dungeon-details.json", "data/fc/quests.json", "data/talents/hunter.json"].map((f) => resolve(root, f));
 describe.skipIf(!files.every(existsSync))("projected DPS on the real best-in-slot data", () => {
   const read = (i: number) => JSON.parse(readFileSync(files[i], "utf8"));
-  const kb = parseKb(read(0));
-  const index = buildRouteIndex(read(1), read(2));
-  const hunter = read(3) as TalentClass;
   const sv = HUNTER_BUILDS.find((b) => b.id === "sv-weave")!;
-  const dpsAt = (level: number) => {
+  const dpsAt = (level: number, kb: ReturnType<typeof parseKb>, index: ReturnType<typeof buildRouteIndex>, hunter: TalentClass) => {
     const bis = levellingBis(kb.items, CLASSES.hunter, level, index, { faction: "alliance" });
     const p = projectSheet(bis, level);
     const alloc = allocFromNames(hunter, buildAtPoints(sv, level - 9)).alloc;
@@ -65,7 +62,11 @@ describe.skipIf(!files.every(existsSync))("projected DPS on the real best-in-slo
   };
 
   it("climbs with level from 20 to 60", () => {
-    const d = [20, 30, 37, 40, 50, 60].map(dpsAt);
+    // Files are read here, not at collection time, so the suite skips cleanly where the data isn't checked in.
+    const kb = parseKb(read(0));
+    const index = buildRouteIndex(read(1), read(2));
+    const hunter = read(3) as TalentClass;
+    const d = [20, 30, 37, 40, 50, 60].map((l) => dpsAt(l, kb, index, hunter));
     if (process.env.SHOW) console.log(d.map(Math.round));
     for (let i = 1; i < d.length; i++) expect(d[i]).toBeGreaterThan(d[i - 1]);
     expect(d[5]).toBeLessThan(1000);
