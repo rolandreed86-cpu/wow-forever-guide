@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { CLASSES } from "@/data/classes";
 import { SYNCED, useCharacter } from "@/lib/character";
 import { CharacterPanel } from "./CharacterPanel";
-import { Book, Bow, Castle, Compass, Crest, Hammer, Paw, Scroll, Star, Trend } from "./Icons";
+import { Book, Bow, Castle, Compass, Crest, Hammer, Horse, Paw, Scroll, Star, Trend } from "./Icons";
 
 const NAV = [
   { to: "guidance", label: "Guidance", icon: Compass, match: ["guidance"] },
@@ -13,7 +13,8 @@ const NAV = [
   { to: "gear", label: "Gear", icon: Bow, match: ["gear"] },
   { to: "quests", label: "Quests", icon: Scroll, match: ["quests"] },
   { to: "professions", label: "Professions", icon: Hammer, match: ["professions"] },
-  { to: "collections", label: "Collections", icon: Paw, match: ["collections"] },
+  { to: "pets", label: "Hunter pets", icon: Paw, match: ["pets"] },
+  { to: "collections", label: "Collections", icon: Horse, match: ["collections"] },
   { to: "about", label: "Sources", icon: Book, match: ["about"] },
 ];
 
@@ -71,6 +72,7 @@ export function Layout({ view, children }: { view: string; children: ReactNode }
           <div>
             Dungeon, quest and class-quest data from <a href="https://forevercompanion.io" target="_blank" rel="noreferrer">Forever Companion</a>.
             Item stats and sources from <a href="https://github.com/gBlaku/wow-forever-kb" target="_blank" rel="noreferrer">wow-forever-kb</a>.
+            Hunter pet data from <a href="https://foreverchanges.pro/hunter-pets" target="_blank" rel="noreferrer">ForeverChanges</a>, <a href="https://wofwforever.com/en/guides/wow-forever-best-hunter-pets/" target="_blank" rel="noreferrer">wofwforever</a> and other community guides.
             Talent trees from <a href="https://wowforevertalent.com/sources/" target="_blank" rel="noreferrer">Talents Forever via WoW Forever Talent</a> (CC BY 4.0).
             Character tracking from <a href="https://forever.raider.io" target="_blank" rel="noreferrer">Raider.IO</a>, <a href="https://battlepost.net" target="_blank" rel="noreferrer">BattlePost</a> and <a href="https://foreverdb.net" target="_blank" rel="noreferrer">ForeverDB</a>.
             Level milestones hand-curated from <a href="https://warcraft.wiki.gg/wiki/World_of_Warcraft:_Forever" target="_blank" rel="noreferrer">warcraft.wiki.gg</a> and community guides.
