@@ -9,6 +9,7 @@ import Quests from "@/pages/Quests";
 import Talents from "@/pages/Talents";
 import Professions from "@/pages/Professions";
 import Collections from "@/pages/Collections";
+import Pets from "@/pages/Pets";
 import About from "@/pages/About";
 import Progress from "@/pages/Progress";
 import { PageTitle } from "@/components/States";
@@ -26,6 +27,7 @@ function View() {
     case "gear": page = <Gear />; break;
     case "quests": page = <Quests />; break;
     case "professions": page = <Professions />; break;
+    case "pets": page = <Pets />; break;
     case "collections": page = <Collections />; break;
     case "about": page = <About />; break;
     case "progress": page = <Progress />; break;

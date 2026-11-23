@@ -58,6 +58,7 @@ export default function Collections() {
             <div className="lbl">Hunter pets in Forever</div>
             <p className="m-0">There are 19 pet families, including the new Fox (Trickster's Dance at level 20), and Owl is now Bird of Prey. Every family has one unique ability. Pets scale from your gear, so a well-geared hunter has a strong pet whatever its level of loyalty.</p>
             <p className="m-0 text-sm">You can only tame beasts at or below your level, and you can stable up to 3 pets (1 active, 2 stabled).</p>
+            <p className="m-0"><a href="#pets">See the hunter pet guide</a> for the best pet at your level, every family's ability and where to tame each beast.</p>
           </div>
           {rares.isLoading && <Loading what="rare beasts" />}
           {rares.isError && <LoadError what="rare beasts" error={rares.error} retry={() => rares.refetch()} />}
