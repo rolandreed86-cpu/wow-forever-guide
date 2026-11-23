@@ -20,7 +20,7 @@ function View() {
   let page;
   switch (view) {
     case "guidance": page = <Guidance />; break;
-    case "talents": page = <Talents />; break;
+    case "talents": page = <Talents key={param ?? ""} shared={param} />; break;
     case "dungeons": page = <DungeonList />; break;
     case "dungeon": page = <DungeonDetail key={param} id={param ?? ""} />; break;
     case "gear": page = <Gear />; break;

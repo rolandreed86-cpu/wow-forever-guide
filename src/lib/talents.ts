@@ -143,3 +143,53 @@ export function buildSummary(cls: TalentClass, alloc: Allocation): string {
   const top = per.indexOf(Math.max(...per));
   return `${cls.trees[top].name} (${per.join("/")})`;
 }
+
+/** Talents of a tree in reading order (row, then column): the order build codes use. */
+function ordered(tree: TalentTree): Talent[] {
+  return [...tree.talents].sort((a, b) => a.row - b.row || a.col - b.col);
+}
+
+/**
+ * A compact, shareable build code: one digit per talent in reading order, trailing zeros dropped,
+ * trees joined by "-" (an empty tree is "0"). Example: "0-55211-5235...".
+ */
+export function encodeBuild(cls: TalentClass, alloc: Allocation): string {
+  return cls.trees
+    .map((tree) => ordered(tree).map((t) => String(Math.min(9, alloc[t.id] ?? 0))).join("").replace(/0+$/, "") || "0")
+    .join("-");
+}
+
+/** Read a build code back. Returns null if it isn't one; the result still needs isValid() against a budget. */
+export function decodeBuild(cls: TalentClass, code: string): Allocation | null {
+  const parts = code.trim().split("-");
+  if (parts.length !== cls.trees.length || parts.some((p) => !/^\d*$/.test(p))) return null;
+  const alloc: Allocation = {};
+  for (const [i, tree] of cls.trees.entries()) {
+    const ts = ordered(tree);
+    if (parts[i].length > ts.length) return null;
+    for (const [j, ch] of [...parts[i]].entries()) {
+      const n = parseInt(ch, 10);
+      if (n > ts[j].maxRank) return null;
+      if (n > 0) alloc[ts[j].id] = n;
+    }
+  }
+  return alloc;
+}
+
+/** Turn talent names → points into an allocation. Unknown names are reported, not silently dropped. */
+export function allocFromNames(cls: TalentClass, byName: Record<string, number>): { alloc: Allocation; missing: string[] } {
+  const alloc: Allocation = {};
+  const missing: string[] = [];
+  const all = cls.trees.flatMap((t) => t.talents);
+  for (const [name, pts] of Object.entries(byName)) {
+    const t = all.find((x) => x.name === name);
+    if (!t) missing.push(name);
+    else alloc[t.id] = Math.min(t.maxRank, (alloc[t.id] ?? 0) + pts);
+  }
+  return { alloc, missing };
+}
+
+/** Points per tree, e.g. [0, 20, 31]. */
+export function splitOf(cls: TalentClass, alloc: Allocation): number[] {
+  return cls.trees.map((t) => spentInTree(t, alloc));
+}
