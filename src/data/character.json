@@ -8,7 +8,7 @@
     "level": 37,
     "faction": "alliance",
     "guild": null,
-    "itemLevel": 34,
+    "itemLevel": 36,
     "talents": {
       "Beast Mastery": 7,
       "Marksmanship": 10,
@@ -53,8 +53,8 @@
       },
       {
         "slot": "Wrist",
-        "id": 270032,
-        "name": "Cultist's Armguards",
+        "id": 19508,
+        "name": "Branded Leather Bracers",
         "quality": "rare"
       },
       {
@@ -83,9 +83,9 @@
       },
       {
         "slot": "Finger",
-        "id": 1156,
-        "name": "Lavishly Jeweled Ring",
-        "quality": "rare"
+        "id": 11970,
+        "name": "Spinel Ring of Power",
+        "quality": "uncommon"
       },
       {
         "slot": "Finger",
@@ -130,7 +130,7 @@
         "quality": "common"
       }
     ],
-    "lastSeen": "2026-11-22T18:35:53.544Z",
+    "lastSeen": "2026-11-24T21:39:58.974Z",
     "spec": {
       "name": "Survival",
       "points": 28
@@ -147,9 +147,9 @@
     },
     "sheet": {
       "strength": 46,
-      "agility": 145,
-      "stamina": 119,
-      "intellect": 69,
+      "agility": 143,
+      "stamina": 118,
+      "intellect": 63,
       "spirit": 67,
       "base": {
         "strength": 38,
@@ -158,33 +158,33 @@
         "intellect": 42,
         "spirit": 46
       },
-      "health": 1683,
-      "mana": 1770,
-      "meleeAp": 382,
+      "health": 1673,
+      "mana": 1680,
+      "meleeAp": 398,
       "mainHand": {
-        "min": 114,
-        "max": 155,
+        "min": 117,
+        "max": 158,
         "speed": 2.5
       },
       "offHand": {
-        "min": 53,
-        "max": 73,
+        "min": 54,
+        "max": 74,
         "speed": 2.2
       },
-      "meleeCrit": 7.58,
+      "meleeCrit": 11.11,
       "meleeHit": 1,
-      "rangedAp": 481,
+      "rangedAp": 495,
       "ranged": {
-        "min": 159,
-        "max": 196,
+        "min": 162,
+        "max": 199,
         "speed": null
       },
-      "rangedCrit": 11.06,
+      "rangedCrit": 11.15,
       "rangedHit": 1,
       "rangedHaste": 10,
-      "armor": 1007,
-      "dodge": 10.36,
-      "parry": 4.76
+      "armor": 1014,
+      "dodge": 10.39,
+      "parry": 4.92
     },
     "weapons": {
       "mainHand": {
@@ -209,7 +209,7 @@
         "speed": 2.8
       }
     },
-    "gearFrom": "2026-11-22T18:35:53.544Z",
+    "gearFrom": "2026-11-24T21:39:58.974Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -224,7 +224,7 @@
         "url": "https://battlepost.net/en/eu/armory/kurt-barren"
       }
     ],
-    "syncedAt": "2026-11-23T11:35:53.544Z"
+    "syncedAt": "2026-11-25T03:39:58.974Z"
   },
   "history": [
     {
