@@ -209,7 +209,7 @@ describe("BattlePost markup without item levels (26 Nov 2026)", () => {
 
   it("averages item level from known items, leaving out the shirt", () => {
     const levels = new Map([[6422, 36], [279879, 39], [45, 1]]);
-    expect(averageItemLevel(parseBattlePostGear(page), levels)).toBe(37.5);
+    expect(averageItemLevel(parseBattlePostGear(page), levels)).toBe(38);
     expect(averageItemLevel([], levels)).toBeNull();
   });
 

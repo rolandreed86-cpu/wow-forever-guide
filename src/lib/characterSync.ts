@@ -261,13 +261,13 @@ const num = (s: string | undefined) => {
   return m ? Number(m[0]) : NaN;
 };
 
-/** Average item level of equipped gear, leaving out shirts and tabards, rounded to one decimal. Null if no item is known. */
+/** Average item level of equipped gear, leaving out shirts and tabards, rounded like the Armory shows it. Null if no item is known. */
 export function averageItemLevel(equipment: SyncedItem[], levels: Map<number, number>): number | null {
   const known = equipment
     .filter((e) => !/shirt|tabard/i.test(e.slot))
     .map((e) => levels.get(e.id))
     .filter((v): v is number => typeof v === "number" && v > 0);
-  return known.length ? Math.round((known.reduce((a, b) => a + b, 0) / known.length) * 10) / 10 : null;
+  return known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
 }
 
 /** Equipped gear from a BattlePost page: slot, item id, name and quality, in page order. */
