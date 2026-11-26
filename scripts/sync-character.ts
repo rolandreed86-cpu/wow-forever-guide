@@ -14,7 +14,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import {
-  appendHistory, battlePostUrl, buildCharacter, describeChanges, fingerprint, foreverDbLinks, parseBattlePostGear,
+  appendHistory, averageItemLevel, battlePostUrl, buildCharacter, parseBattlePost, describeChanges, fingerprint, foreverDbLinks, parseBattlePostGear,
   parseForeverDbProfessions, parseWeaponTooltip, pickForeverDbLink, raiderIoUrl, type CharacterFile, type SyncedCharacter,
 } from "../src/lib/characterSync.ts";
 
@@ -101,6 +101,20 @@ else if (!Object.keys(parseForeverDbProfessions(foreverDb.html).professions).len
 
 const file = JSON.parse(readFileSync(OUT, "utf8")) as CharacterFile;
 const next = buildCharacter({ raiderIo, battlePost, foreverDb, weapons, region, previous: file.character });
+
+// BattlePost sometimes shows no average item level ("-"). Work it out from the gear and the bundled item data instead.
+const bpLive = battlePost ? parseBattlePost(battlePost.html) : null;
+if (bpLive && bpLive.level >= next.level && bpLive.itemLevel === null && parseBattlePostGear(battlePost!.html).length) {
+  try {
+    const kb = JSON.parse(readFileSync("public/data/items.json", "utf8")) as { fields: string[]; items: unknown[][] };
+    const id = kb.fields.indexOf("id"), ilvl = kb.fields.indexOf("ilvl");
+    const levels = new Map(kb.items.map((r) => [Number(r[id]), Number(r[ilvl])]));
+    const avg = averageItemLevel(next.equipment, levels);
+    if (avg !== null) next.itemLevel = avg;
+  } catch {
+    // no item data here: keep what buildCharacter chose
+  }
+}
 
 if (fingerprint(file.character) === fingerprint(next)) {
   console.log(`No changes: ${next.name} is still level ${next.level}.`);

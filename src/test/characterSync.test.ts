@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  appendHistory, battlePostUrl, buildCharacter, parseBattlePost, parseBattlePostGear, parseBattlePostSheet, parseBattlePostTalents, parseWeaponTooltip, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
+  appendHistory, averageItemLevel, battlePostUrl, buildCharacter, parseBattlePost, parseBattlePostGear, parseBattlePostSheet, parseBattlePostTalents, parseWeaponTooltip, describeChanges, fingerprint, foreverDbLinks, parseForeverDbProfessions,
   parseRaiderIo, pickForeverDbLink, raiderIoUrl, type SyncedCharacter,
 } from "@/lib/characterSync";
 import { applySync, DEFAULT_CHARACTER } from "@/lib/character";
@@ -190,5 +190,36 @@ describe("BattlePost gear, talents and sheet", () => {
   });
   it("reads a weapon's speed from its tooltip", () => {
     expect(parseWeaponTooltip(1, "Gun", "<td>41 - 78 Damage</td><th>Speed 2.80</th>")).toEqual({ id: 1, name: "Gun", min: 41, max: 78, speed: 2.8 });
+  });
+});
+
+describe("BattlePost markup without item levels (26 Nov 2026)", () => {
+  // Trimmed from a real battlepost.net page: the slot label no longer carries "· item level".
+  const page = `<a class="pd-s pd-l" href="https://www.wowhead.com/forever/item=6422" target="_blank"><span class="pd-ic"></span><span class="pd-t"><b class="q2">Glyphed Helm</b><small>Head</small><em class="no-ench">No enchant</em></span></a>
+<a class="pd-s pd-l" href="https://www.wowhead.com/forever/item=279879" target="_blank"><span class="pd-t"><b class="q3">Rune-Etched Epaulets</b><small>Shoulder</small></span></a>
+<a class="pd-s pd-l" href="https://www.wowhead.com/forever/item=45" target="_blank"><span class="pd-t"><b class="q1">Bold Yellow Shirt</b><small>Shirt · 1</small></span></a>`;
+
+  it("still reads the gear, old and new slot labels alike", () => {
+    expect(parseBattlePostGear(page)).toEqual([
+      { slot: "Head", id: 6422, name: "Glyphed Helm", quality: "uncommon" },
+      { slot: "Shoulder", id: 279879, name: "Rune-Etched Epaulets", quality: "rare" },
+      { slot: "Shirt", id: 45, name: "Bold Yellow Shirt", quality: "common" },
+    ]);
+  });
+
+  it("averages item level from known items, leaving out the shirt", () => {
+    const levels = new Map([[6422, 36], [279879, 39], [45, 1]]);
+    expect(averageItemLevel(parseBattlePostGear(page), levels)).toBe(37.5);
+    expect(averageItemLevel([], levels)).toBeNull();
+  });
+
+  it("keeps the last sync's gear when BattlePost has none and Raider.IO is older", () => {
+    const now = new Date("2026-11-26T04:00:00Z");
+    const prev = buildCharacter({ raiderIo: rio, region: "eu", now: new Date("2026-11-25T04:00:00Z") });
+    const previous = { ...prev, gearFrom: "2026-11-24T21:39:58.974Z", itemLevel: 36, equipment: [{ slot: "Wrist", id: 1, name: "Branded Leather Bracers", quality: "uncommon" }] };
+    const c = buildCharacter({ raiderIo: rio, region: "eu", previous, now });
+    expect(c.equipment).toEqual(previous.equipment);
+    expect(c.itemLevel).toBe(36);
+    expect(c.gearFrom).toBe(previous.gearFrom);
   });
 });
