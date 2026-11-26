@@ -5,14 +5,14 @@
     "className": "Hunter",
     "classId": "hunter",
     "race": "Human",
-    "level": 37,
+    "level": 38,
     "faction": "alliance",
     "guild": null,
     "itemLevel": 36,
     "talents": {
       "Beast Mastery": 7,
       "Marksmanship": 10,
-      "Survival": 11
+      "Survival": 12
     },
     "equipment": [
       {
@@ -130,10 +130,10 @@
         "quality": "common"
       }
     ],
-    "lastSeen": "2026-11-24T21:39:58.974Z",
+    "lastSeen": "2026-11-25T21:42:51.353Z",
     "spec": {
       "name": "Survival",
-      "points": 28
+      "points": 29
     },
     "talentRanks": {
       "Deadly Aspects": 5,
@@ -143,48 +143,48 @@
       "Improved Tracking": 5,
       "Savage Strikes": 2,
       "Survivalist": 3,
-      "Surefooted": 1
+      "Surefooted": 2
     },
     "sheet": {
-      "strength": 46,
-      "agility": 143,
-      "stamina": 118,
-      "intellect": 63,
-      "spirit": 67,
+      "strength": 47,
+      "agility": 145,
+      "stamina": 119,
+      "intellect": 64,
+      "spirit": 68,
       "base": {
-        "strength": 38,
-        "agility": 74,
-        "stamina": 58,
-        "intellect": 42,
-        "spirit": 46
+        "strength": 39,
+        "agility": 76,
+        "stamina": 59,
+        "intellect": 43,
+        "spirit": 47
       },
-      "health": 1673,
-      "mana": 1680,
-      "meleeAp": 398,
+      "health": 1717,
+      "mana": 1725,
+      "meleeAp": 404,
       "mainHand": {
-        "min": 117,
-        "max": 158,
+        "min": 118,
+        "max": 159,
         "speed": 2.5
       },
       "offHand": {
-        "min": 54,
-        "max": 74,
+        "min": 55,
+        "max": 75,
         "speed": 2.2
       },
       "meleeCrit": 11.11,
-      "meleeHit": 1,
-      "rangedAp": 495,
+      "meleeHit": 2,
+      "rangedAp": 502,
       "ranged": {
-        "min": 162,
-        "max": 199,
+        "min": 163,
+        "max": 200,
         "speed": null
       },
-      "rangedCrit": 11.15,
-      "rangedHit": 1,
+      "rangedCrit": 10.99,
+      "rangedHit": 2,
       "rangedHaste": 10,
-      "armor": 1014,
-      "dodge": 10.39,
-      "parry": 4.92
+      "armor": 1018,
+      "dodge": 10.13,
+      "parry": 4.84
     },
     "weapons": {
       "mainHand": {
@@ -209,7 +209,7 @@
         "speed": 2.8
       }
     },
-    "gearFrom": "2026-11-24T21:39:58.974Z",
+    "gearFrom": "2026-11-25T21:42:51.353Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -224,7 +224,7 @@
         "url": "https://battlepost.net/en/eu/armory/kurt-barren"
       }
     ],
-    "syncedAt": "2026-11-25T03:39:58.974Z"
+    "syncedAt": "2026-11-26T03:42:51.353Z"
   },
   "history": [
     {
@@ -240,6 +240,11 @@
     {
       "date": "2026-11-23",
       "level": 37,
+      "professions": {}
+    },
+    {
+      "date": "2026-11-26",
+      "level": 38,
       "professions": {}
     }
   ]
