@@ -5,14 +5,14 @@
     "className": "Hunter",
     "classId": "hunter",
     "race": "Human",
-    "level": 37,
+    "level": 39,
     "faction": "alliance",
     "guild": null,
-    "itemLevel": 34,
+    "itemLevel": 36,
     "talents": {
       "Beast Mastery": 7,
       "Marksmanship": 10,
-      "Survival": 11
+      "Survival": 13
     },
     "equipment": [
       {
@@ -53,8 +53,8 @@
       },
       {
         "slot": "Wrist",
-        "id": 270032,
-        "name": "Cultist's Armguards",
+        "id": 19508,
+        "name": "Branded Leather Bracers",
         "quality": "rare"
       },
       {
@@ -83,9 +83,9 @@
       },
       {
         "slot": "Finger",
-        "id": 1156,
-        "name": "Lavishly Jeweled Ring",
-        "quality": "rare"
+        "id": 11970,
+        "name": "Spinel Ring of Power",
+        "quality": "uncommon"
       },
       {
         "slot": "Finger",
@@ -130,10 +130,10 @@
         "quality": "common"
       }
     ],
-    "lastSeen": "2026-11-22T18:35:53.544Z",
+    "lastSeen": "2026-11-26T19:40:31.588Z",
     "spec": {
       "name": "Survival",
-      "points": 28
+      "points": 30
     },
     "talentRanks": {
       "Deadly Aspects": 5,
@@ -143,48 +143,48 @@
       "Improved Tracking": 5,
       "Savage Strikes": 2,
       "Survivalist": 3,
-      "Surefooted": 1
+      "Surefooted": 3
     },
     "sheet": {
-      "strength": 46,
-      "agility": 145,
-      "stamina": 119,
-      "intellect": 69,
-      "spirit": 67,
+      "strength": 47,
+      "agility": 147,
+      "stamina": 120,
+      "intellect": 64,
+      "spirit": 69,
       "base": {
-        "strength": 38,
-        "agility": 74,
-        "stamina": 58,
-        "intellect": 42,
-        "spirit": 46
+        "strength": 39,
+        "agility": 78,
+        "stamina": 60,
+        "intellect": 43,
+        "spirit": 48
       },
-      "health": 1683,
-      "mana": 1770,
-      "meleeAp": 382,
+      "health": 1763,
+      "mana": 1755,
+      "meleeAp": 408,
       "mainHand": {
-        "min": 114,
-        "max": 155,
+        "min": 119,
+        "max": 160,
         "speed": 2.5
       },
       "offHand": {
-        "min": 53,
-        "max": 73,
+        "min": 55,
+        "max": 75,
         "speed": 2.2
       },
-      "meleeCrit": 7.58,
-      "meleeHit": 1,
-      "rangedAp": 481,
+      "meleeCrit": 10.99,
+      "meleeHit": 3,
+      "rangedAp": 508,
       "ranged": {
-        "min": 159,
-        "max": 196,
+        "min": 165,
+        "max": 202,
         "speed": null
       },
-      "rangedCrit": 11.06,
-      "rangedHit": 1,
+      "rangedCrit": 10.95,
+      "rangedHit": 3,
       "rangedHaste": 10,
-      "armor": 1007,
-      "dodge": 10.36,
-      "parry": 4.76
+      "armor": 1022,
+      "dodge": 10.01,
+      "parry": 4.88
     },
     "weapons": {
       "mainHand": {
@@ -209,7 +209,7 @@
         "speed": 2.8
       }
     },
-    "gearFrom": "2026-11-22T18:35:53.544Z",
+    "gearFrom": "2026-11-26T19:40:31.588Z",
     "region": "EU",
     "professions": {},
     "professionMax": {},
@@ -224,7 +224,7 @@
         "url": "https://battlepost.net/en/eu/armory/kurt-barren"
       }
     ],
-    "syncedAt": "2026-11-23T11:35:53.544Z"
+    "syncedAt": "2026-11-27T03:40:31.588Z"
   },
   "history": [
     {
@@ -240,6 +240,16 @@
     {
       "date": "2026-11-23",
       "level": 37,
+      "professions": {}
+    },
+    {
+      "date": "2026-11-26",
+      "level": 38,
+      "professions": {}
+    },
+    {
+      "date": "2026-11-27",
+      "level": 39,
       "professions": {}
     }
   ]
